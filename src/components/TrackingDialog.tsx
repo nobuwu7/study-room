@@ -30,24 +30,50 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+interface StudySession {
+  id: string;
+  session_type: 'solo' | 'with_friends';
+  start_time: string;
+  end_time: string | null;
+  break_type: 'none' | 'light' | 'heavy';
+  energy_level: 'none' | 'low' | 'high';
+  notes: string | null;
+}
+
 interface TrackingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editSession?: StudySession | null;
+  onSessionUpdated?: () => void;
 }
 
-export const TrackingDialog = ({ open, onOpenChange }: TrackingDialogProps) => {
+export const TrackingDialog = ({ open, onOpenChange, editSession, onSessionUpdated }: TrackingDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      sessionType: 'solo',
-      startTime: new Date().toISOString().slice(0, 16),
-      endTime: '',
-      breakType: 'none',
-      energyLevel: 'none',
-      notes: '',
+      sessionType: editSession?.session_type || 'solo',
+      startTime: editSession?.start_time ? new Date(editSession.start_time).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+      endTime: editSession?.end_time ? new Date(editSession.end_time).toISOString().slice(0, 16) : '',
+      breakType: editSession?.break_type || 'none',
+      energyLevel: editSession?.energy_level || 'none',
+      notes: editSession?.notes || '',
     },
+  });
+
+  // Reset form when editSession changes
+  useState(() => {
+    if (editSession) {
+      form.reset({
+        sessionType: editSession.session_type,
+        startTime: new Date(editSession.start_time).toISOString().slice(0, 16),
+        endTime: editSession.end_time ? new Date(editSession.end_time).toISOString().slice(0, 16) : '',
+        breakType: editSession.break_type,
+        energyLevel: editSession.energy_level,
+        notes: editSession.notes || '',
+      });
+    }
   });
 
   const onSubmit = async (data: FormValues) => {
@@ -68,7 +94,7 @@ export const TrackingDialog = ({ open, onOpenChange }: TrackingDialogProps) => {
         durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
       }
 
-      const { error } = await supabase.from('study_sessions').insert({
+      const sessionData = {
         user_id: user.id,
         session_type: data.sessionType,
         start_time: data.startTime,
@@ -77,16 +103,31 @@ export const TrackingDialog = ({ open, onOpenChange }: TrackingDialogProps) => {
         break_type: data.breakType,
         energy_level: data.energyLevel,
         notes: data.notes || null,
-      });
+      };
 
-      if (error) throw error;
+      if (editSession) {
+        // Update existing session
+        const { error } = await supabase
+          .from('study_sessions')
+          .update(sessionData)
+          .eq('id', editSession.id);
 
-      toast.success('Study session logged successfully!');
+        if (error) throw error;
+        toast.success('Study session updated successfully!');
+      } else {
+        // Insert new session
+        const { error } = await supabase.from('study_sessions').insert(sessionData);
+
+        if (error) throw error;
+        toast.success('Study session logged successfully!');
+      }
+
       form.reset();
       onOpenChange(false);
+      onSessionUpdated?.();
     } catch (error) {
       console.error('Error logging session:', error);
-      toast.error('Failed to log session. Please try again.');
+      toast.error(`Failed to ${editSession ? 'update' : 'log'} session. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -96,7 +137,9 @@ export const TrackingDialog = ({ open, onOpenChange }: TrackingDialogProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Track Study Session</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">
+            {editSession ? 'Edit Study Session' : 'Track Study Session'}
+          </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>

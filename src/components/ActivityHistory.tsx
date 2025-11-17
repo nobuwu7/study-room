@@ -3,8 +3,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calendar, Clock, Users, User, Battery, Coffee, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Clock, Users, User, Battery, Coffee, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface StudySession {
   id: string;
@@ -18,9 +29,15 @@ interface StudySession {
   created_at: string;
 }
 
-export const ActivityHistory = () => {
+interface ActivityHistoryProps {
+  onEditSession: (session: StudySession) => void;
+}
+
+export const ActivityHistory = ({ onEditSession }: ActivityHistoryProps) => {
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSessions();
@@ -42,6 +59,31 @@ export const ActivityHistory = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = async (sessionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('study_sessions')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) throw error;
+
+      setSessions(sessions.filter(s => s.id !== sessionId));
+      toast.success('Study session deleted successfully');
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      toast.error('Failed to delete session');
+    } finally {
+      setDeleteDialogOpen(false);
+      setSessionToDelete(null);
+    }
+  };
+
+  const confirmDelete = (sessionId: string) => {
+    setSessionToDelete(sessionId);
+    setDeleteDialogOpen(true);
   };
 
   const formatDate = (dateString: string) => {
@@ -100,33 +142,54 @@ export const ActivityHistory = () => {
   }
 
   return (
-    <div>
-      <h4 className="text-md font-semibold mb-4">Activity History</h4>
-      <ScrollArea className="h-[500px] pr-4">
+    <>
+      <div>
+        <h4 className="text-md font-semibold mb-4">Activity History</h4>
+        <ScrollArea className="h-[500px] pr-4">
           <div className="space-y-4">
             {sessions.map((session) => (
               <Card key={session.id} className="p-4 border-border/50">
                 <div className="space-y-3">
-                  {/* Header with date and session type */}
+                  {/* Header with date, session type, and action buttons */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">
-                        {formatDate(session.start_time)}
-                      </span>
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">
+                          {formatDate(session.start_time)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {session.session_type === 'solo' ? (
+                          <>
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">Solo</span>
+                          </>
+                        ) : (
+                          <>
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">With Friends</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {session.session_type === 'solo' ? (
-                        <>
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Solo</span>
-                        </>
-                      ) : (
-                        <>
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">With Friends</span>
-                        </>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEditSession(session)}
+                        className="h-8 w-8"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => confirmDelete(session.id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
 
@@ -178,6 +241,27 @@ export const ActivityHistory = () => {
             ))}
           </div>
         </ScrollArea>
-    </div>
+      </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Study Session</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this study session? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => sessionToDelete && handleDelete(sessionToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
