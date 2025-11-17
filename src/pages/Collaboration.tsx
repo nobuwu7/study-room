@@ -6,36 +6,70 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BookOpen, LogOut, Users, Plus, Mail, FileText, Link as LinkIcon, CheckSquare, Trash2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { BookOpen, LogOut, Users, Plus, Mail, FileText, Link as LinkIcon, CheckSquare, Trash2, Edit, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+
+type AccessLevel = 'viewer' | 'editor' | 'admin';
+type ResourceType = 'note' | 'link' | 'task';
+
+interface Group {
+  id: string;
+  name: string;
+  description: string;
+}
+
+interface Member {
+  id: string;
+  user_id: string;
+  role: AccessLevel;
+  email: string;
+}
+
+interface Resource {
+  id: string;
+  title: string;
+  content: string;
+  resource_type: ResourceType;
+  created_by: string;
+  created_at: string;
+}
 
 const Collaboration = () => {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const [groups, setGroups] = useState<any[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState<any>(null);
-  const [resources, setResources] = useState<any[]>([]);
-  const [members, setMembers] = useState<any[]>([]);
-  const [invitations, setInvitations] = useState<any[]>([]);
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
-  const [loadingData, setLoadingData] = useState(true);
-  const [createGroupOpen, setCreateGroupOpen] = useState(false);
-  const [inviteMemberOpen, setInviteMemberOpen] = useState(false);
-  const [createResourceOpen, setCreateResourceOpen] = useState(false);
-  const [editingResource, setEditingResource] = useState<any>(null);
-
-  // Form states
-  const [groupName, setGroupName] = useState('');
-  const [groupDescription, setGroupDescription] = useState('');
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'member' | 'admin' | 'viewer'>('member');
-  const [resourceTitle, setResourceTitle] = useState('');
-  const [resourceContent, setResourceContent] = useState('');
-  const [resourceType, setResourceType] = useState<'note' | 'link' | 'file' | 'task'>('note');
+  
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<AccessLevel | null>(null);
+  
+  // Resources
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [resourceForm, setResourceForm] = useState({
+    title: '',
+    content: '',
+    type: 'note' as ResourceType
+  });
+  const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
+  
+  // Members
+  const [members, setMembers] = useState<Member[]>([]);
+  
+  // Invitations
+  const [inviteForm, setInviteForm] = useState({
+    email: '',
+    accessLevel: 'viewer' as AccessLevel
+  });
+  
+  // Group creation
+  const [groupForm, setGroupForm] = useState({
+    name: '',
+    description: ''
+  });
+  
+  const [showGroupForm, setShowGroupForm] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -46,700 +80,564 @@ const Collaboration = () => {
   useEffect(() => {
     if (user) {
       fetchGroups();
-      fetchInvitations();
     }
   }, [user]);
 
   useEffect(() => {
-    if (selectedGroup) {
-      fetchResources();
-      fetchMembers();
+    if (selectedGroup && user) {
+      fetchGroupData();
+      setupRealtimeSubscriptions();
       
-      // Get current user's role in this group
-      const fetchUserRole = async () => {
-        const { data } = await supabase
-          .from('group_members')
-          .select('role')
-          .eq('group_id', selectedGroup.id)
-          .eq('user_id', user?.id)
-          .single();
-        
-        setCurrentUserRole(data?.role || null);
-      };
-      
-      fetchUserRole();
-      
-      // Set up real-time subscriptions
-      const resourcesChannel = supabase
-        .channel(`resources-${selectedGroup.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'shared_resources',
-            filter: `group_id=eq.${selectedGroup.id}`
-          },
-          () => {
-            fetchResources();
-          }
-        )
-        .subscribe();
-
-      const membersChannel = supabase
-        .channel(`members-${selectedGroup.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'group_members',
-            filter: `group_id=eq.${selectedGroup.id}`
-          },
-          () => {
-            fetchMembers();
-            fetchUserRole();
-          }
-        )
-        .subscribe();
-
       return () => {
-        supabase.removeChannel(resourcesChannel);
-        supabase.removeChannel(membersChannel);
+        supabase.removeAllChannels();
       };
     }
   }, [selectedGroup, user]);
 
   const fetchGroups = async () => {
-    try {
-      const { data: groupMembersData, error: membersError } = await supabase
-        .from('group_members')
-        .select('group_id')
-        .eq('user_id', user?.id);
-
-      if (membersError) throw membersError;
-
-      const groupIds = groupMembersData?.map(m => m.group_id) || [];
-      
-      if (groupIds.length === 0) {
-        setGroups([]);
-        setLoadingData(false);
-        return;
-      }
-
-      const { data: groupsData, error: groupsError } = await supabase
-        .from('study_groups')
-        .select('*')
-        .in('id', groupIds)
-        .order('created_at', { ascending: false });
-
-      if (groupsError) throw groupsError;
-      setGroups(groupsData || []);
-    } catch (error: any) {
+    const { data, error } = await supabase
+      .from('study_groups')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
       toast.error('Failed to load groups');
-    } finally {
-      setLoadingData(false);
+      return;
     }
+    
+    setGroups(data || []);
   };
 
-  const fetchInvitations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('group_invitations')
-        .select('*, study_groups(name)')
-        .eq('invited_email', user?.email)
-        .eq('status', 'pending');
-
-      if (error) throw error;
-      setInvitations(data || []);
-    } catch (error: any) {
-      console.error('Failed to load invitations:', error);
-    }
-  };
-
-  const fetchResources = async () => {
+  const fetchGroupData = async () => {
     if (!selectedGroup) return;
     
-    try {
-      const { data, error } = await supabase
-        .from('shared_resources')
-        .select('*')
-        .eq('group_id', selectedGroup.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setResources(data || []);
-    } catch (error: any) {
-      toast.error('Failed to load resources');
+    // Fetch user role
+    const { data: roleData } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', selectedGroup.id)
+      .eq('user_id', user?.id)
+      .single();
+    
+    setCurrentUserRole((roleData?.role as AccessLevel) || null);
+    
+    // Fetch resources
+    const { data: resourcesData } = await supabase
+      .from('shared_resources')
+      .select('*')
+      .eq('group_id', selectedGroup.id)
+      .order('created_at', { ascending: false });
+    
+    setResources((resourcesData || []) as Resource[]);
+    
+    // Fetch members with emails
+    const { data: membersData } = await supabase
+      .from('group_members')
+      .select('id, user_id, role')
+      .eq('group_id', selectedGroup.id);
+    
+    if (membersData) {
+      const membersWithEmails = await Promise.all(
+        membersData.map(async (member) => {
+          const { data: userData } = await supabase.rpc('get_user_email', {
+            _user_id: member.user_id
+          });
+          return { ...member, email: userData || 'Unknown', role: member.role as AccessLevel };
+        })
+      );
+      setMembers(membersWithEmails);
     }
   };
 
-  const fetchMembers = async () => {
+  const setupRealtimeSubscriptions = () => {
     if (!selectedGroup) return;
     
-    try {
-      const { data, error } = await supabase
-        .from('group_members')
-        .select('*')
-        .eq('group_id', selectedGroup.id);
-
-      if (error) throw error;
-      setMembers(data || []);
-    } catch (error: any) {
-      toast.error('Failed to load members');
-    }
+    const channel = supabase
+      .channel(`group-${selectedGroup.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shared_resources',
+          filter: `group_id=eq.${selectedGroup.id}`
+        },
+        () => fetchGroupData()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'group_members',
+          filter: `group_id=eq.${selectedGroup.id}`
+        },
+        () => fetchGroupData()
+      )
+      .subscribe();
   };
 
   const createGroup = async () => {
-    if (!groupName.trim()) {
+    if (!groupForm.name.trim()) {
       toast.error('Group name is required');
       return;
     }
-
-    try {
-      const { data: groupData, error: groupError } = await supabase
-        .from('study_groups')
-        .insert({
-          name: groupName,
-          description: groupDescription,
-          created_by: user?.id
-        })
-        .select()
-        .single();
-
-      if (groupError) throw groupError;
-
-      // Add creator as owner
-      const { error: memberError } = await supabase
-        .from('group_members')
-        .insert({
-          group_id: groupData.id,
-          user_id: user?.id,
-          role: 'owner'
-        });
-
-      if (memberError) throw memberError;
-
-      toast.success('Group created successfully!');
-      setGroupName('');
-      setGroupDescription('');
-      setCreateGroupOpen(false);
-      fetchGroups();
-    } catch (error: any) {
+    
+    const { data, error } = await supabase
+      .from('study_groups')
+      .insert({
+        name: groupForm.name,
+        description: groupForm.description,
+        created_by: user?.id
+      })
+      .select()
+      .single();
+    
+    if (error) {
       toast.error('Failed to create group');
+      return;
     }
+    
+    toast.success('Group created successfully');
+    setGroupForm({ name: '', description: '' });
+    setShowGroupForm(false);
+    fetchGroups();
+    setSelectedGroup(data);
   };
 
   const inviteMember = async () => {
-    if (!inviteEmail.trim() || !selectedGroup) {
+    if (!selectedGroup || !inviteForm.email.trim()) {
       toast.error('Email is required');
       return;
     }
-
-    try {
-      const { error } = await supabase
-        .from('group_invitations')
-        .insert({
-          group_id: selectedGroup.id,
-          invited_by: user?.id,
-          invited_email: inviteEmail,
-          role: inviteRole
-        });
-
-      if (error) throw error;
-
-      toast.success('Invitation sent!');
-      setInviteEmail('');
-      setInviteRole('member');
-      setInviteMemberOpen(false);
-    } catch (error: any) {
-      if (error.code === '23505') {
-        toast.error('User already invited');
-      } else {
-        toast.error('Failed to send invitation');
-      }
+    
+    if (currentUserRole !== 'admin') {
+      toast.error('Only admins can invite members');
+      return;
     }
+    
+    const { error } = await supabase
+      .from('group_invitations')
+      .insert({
+        group_id: selectedGroup.id,
+        invited_email: inviteForm.email,
+        invited_by: user?.id,
+        role: inviteForm.accessLevel
+      });
+    
+    if (error) {
+      toast.error('Failed to send invitation');
+      return;
+    }
+    
+    toast.success('Invitation sent successfully');
+    setInviteForm({ email: '', accessLevel: 'viewer' });
   };
 
-  const acceptInvitation = async (invitationId: string, groupId: string) => {
-    try {
-      // Update invitation status
-      const { error: inviteError } = await supabase
-        .from('group_invitations')
-        .update({ status: 'accepted' })
-        .eq('id', invitationId);
-
-      if (inviteError) throw inviteError;
-
-      // Get the invitation to check the role
-      const { data: inviteData } = await supabase
-        .from('group_invitations')
-        .select('role')
-        .eq('id', invitationId)
-        .single();
-
-      // Add user to group with the role from invitation
-      const { error: memberError } = await supabase
-        .from('group_members')
-        .insert({
-          group_id: groupId,
-          user_id: user?.id,
-          role: inviteData?.role || 'member'
-        });
-
-      if (memberError) throw memberError;
-
-      toast.success('Invitation accepted!');
-      fetchGroups();
-      fetchInvitations();
-    } catch (error: any) {
-      toast.error('Failed to accept invitation');
-    }
-  };
-
-  const createResource = async () => {
-    if (!resourceTitle.trim() || !resourceContent.trim() || !selectedGroup) {
+  const createOrUpdateResource = async () => {
+    if (!selectedGroup || !resourceForm.title.trim() || !resourceForm.content.trim()) {
       toast.error('Title and content are required');
       return;
     }
-
-    try {
-      if (editingResource) {
-        // Update existing resource
-        const { error } = await supabase
-          .from('shared_resources')
-          .update({
-            title: resourceTitle,
-            content: resourceContent,
-            resource_type: resourceType,
-          })
-          .eq('id', editingResource.id);
-
-        if (error) throw error;
-        toast.success('Resource updated!');
-      } else {
-        // Create new resource
-        const { error } = await supabase
-          .from('shared_resources')
-          .insert({
-            group_id: selectedGroup.id,
-            title: resourceTitle,
-            content: resourceContent,
-            resource_type: resourceType,
-            created_by: user?.id
-          });
-
-        if (error) throw error;
-        toast.success('Resource shared!');
-      }
-
-      setResourceTitle('');
-      setResourceContent('');
-      setResourceType('note');
-      setEditingResource(null);
-      setCreateResourceOpen(false);
-      fetchResources();
-    } catch (error: any) {
-      toast.error(editingResource ? 'Failed to update resource' : 'Failed to share resource');
+    
+    if (currentUserRole === 'viewer') {
+      toast.error('Viewers cannot create or edit resources');
+      return;
     }
-  };
-
-  const editResource = (resource: any) => {
-    setEditingResource(resource);
-    setResourceTitle(resource.title);
-    setResourceContent(resource.content);
-    setResourceType(resource.resource_type);
-    setCreateResourceOpen(true);
-  };
-
-  const deleteResource = async (resourceId: string) => {
-    try {
+    
+    if (editingResourceId) {
       const { error } = await supabase
         .from('shared_resources')
-        .delete()
-        .eq('id', resourceId);
-
-      if (error) throw error;
-      toast.success('Resource deleted');
-      fetchResources();
-    } catch (error: any) {
-      toast.error('Failed to delete resource');
+        .update({
+          title: resourceForm.title,
+          content: resourceForm.content,
+          resource_type: resourceForm.type
+        })
+        .eq('id', editingResourceId);
+      
+      if (error) {
+        toast.error('Failed to update resource');
+        return;
+      }
+      
+      toast.success('Resource updated successfully');
+    } else {
+      const { error } = await supabase
+        .from('shared_resources')
+        .insert({
+          group_id: selectedGroup.id,
+          title: resourceForm.title,
+          content: resourceForm.content,
+          resource_type: resourceForm.type,
+          created_by: user?.id
+        });
+      
+      if (error) {
+        toast.error('Failed to create resource');
+        return;
+      }
+      
+      toast.success('Resource created successfully');
     }
+    
+    setResourceForm({ title: '', content: '', type: 'note' });
+    setEditingResourceId(null);
+  };
+
+  const editResource = (resource: Resource) => {
+    if (currentUserRole === 'viewer') {
+      toast.error('Viewers cannot edit resources');
+      return;
+    }
+    
+    setResourceForm({
+      title: resource.title,
+      content: resource.content,
+      type: resource.resource_type
+    });
+    setEditingResourceId(resource.id);
+  };
+
+  const deleteResource = async (id: string) => {
+    if (currentUserRole === 'viewer') {
+      toast.error('Viewers cannot delete resources');
+      return;
+    }
+    
+    const { error } = await supabase
+      .from('shared_resources')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Failed to delete resource');
+      return;
+    }
+    
+    toast.success('Resource deleted successfully');
   };
 
   const handleSignOut = async () => {
     await signOut();
-    toast.success('Signed out successfully');
-    navigate('/');
+    navigate('/auth');
   };
 
-  if (loading || loadingData) {
+  const getResourceIcon = (type: ResourceType) => {
+    switch (type) {
+      case 'note':
+        return <FileText className="h-4 w-4" />;
+      case 'link':
+        return <LinkIcon className="h-4 w-4" />;
+      case 'task':
+        return <CheckSquare className="h-4 w-4" />;
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  if (!user) return null;
-
-  const canEditResource = (resource: any) => {
-    if (currentUserRole === 'viewer') return false;
-    if (currentUserRole === 'admin' || currentUserRole === 'owner') return true;
-    return resource.created_by === user?.id;
-  };
-
-  const canShareResource = currentUserRole !== 'viewer';
-
-  const getRoleDisplay = (role: string) => {
-    switch (role) {
-      case 'owner': return '👑 Owner';
-      case 'admin': return '⭐ Admin';
-      case 'viewer': return '👁️ Viewer';
-      default: return '✏️ Editor';
-    }
-  };
-
-  const getResourceIcon = (type: string) => {
-    switch (type) {
-      case 'link': return <LinkIcon className="w-4 h-4" />;
-      case 'task': return <CheckSquare className="w-4 h-4" />;
-      default: return <FileText className="w-4 h-4" />;
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-hero">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border/50 bg-background/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="p-2 bg-gradient-warm rounded-xl">
-              <BookOpen className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-semibold text-foreground">StudyRoom</span>
-          </Link>
-          
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:block">
-              {user.email}
-            </span>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleSignOut}
-              className="gap-2"
-            >
-              <LogOut className="w-4 h-4" />
+      <header className="border-b border-border">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <BookOpen className="h-6 w-6 text-primary" />
+              <span className="text-xl font-semibold text-foreground">StudyTracker</span>
+            </Link>
+            <Button onClick={handleSignOut} variant="ghost" size="sm">
+              <LogOut className="h-4 w-4 mr-2" />
               Sign Out
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
-              Study Groups 👥
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Collaborate and share resources in real-time
-            </p>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Collaboration</h1>
+          <p className="text-muted-foreground mb-8">Share and collaborate on study resources with your groups</p>
 
-          <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-warm text-white gap-2">
-                <Plus className="w-4 h-4" />
-                Create Group
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Study Group</DialogTitle>
-                <DialogDescription>Start a new group to collaborate with others</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <Label htmlFor="groupName">Group Name</Label>
-                  <Input
-                    id="groupName"
-                    value={groupName}
-                    onChange={(e) => setGroupName(e.target.value)}
-                    placeholder="e.g., CS101 Study Group"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="groupDescription">Description</Label>
-                  <Textarea
-                    id="groupDescription"
-                    value={groupDescription}
-                    onChange={(e) => setGroupDescription(e.target.value)}
-                    placeholder="What's this group about?"
-                  />
-                </div>
-                <Button onClick={createGroup} className="w-full">Create Group</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Pending Invitations */}
-        {invitations.length > 0 && (
-          <Card className="mb-6 border-primary/20 bg-primary/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="w-5 h-5" />
-                Pending Invitations
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {invitations.map((invite) => (
-                  <div key={invite.id} className="flex items-center justify-between p-3 bg-background rounded-lg">
-                    <span className="font-medium">{invite.study_groups?.name}</span>
-                    <Button size="sm" onClick={() => acceptInvitation(invite.id, invite.group_id)}>
-                      Accept
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Groups List */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Your Groups</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {groups.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No groups yet. Create one to get started!
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {groups.map((group) => (
-                    <button
-                      key={group.id}
-                      onClick={() => setSelectedGroup(group)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors ${
-                        selectedGroup?.id === group.id
-                          ? 'bg-primary/10 border border-primary/20'
-                          : 'bg-muted/50 hover:bg-muted'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Users className="w-5 h-5 text-primary" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{group.name}</p>
-                          {group.description && (
-                            <p className="text-xs text-muted-foreground truncate">{group.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Group Content */}
-          {selectedGroup ? (
-            <div className="lg:col-span-2 space-y-6">
-              {/* Members */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Groups Sidebar */}
+            <div className="md:col-span-1">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Members</CardTitle>
-                    <CardDescription>{members.length} member(s)</CardDescription>
-                  </div>
-                  <Dialog open={inviteMemberOpen} onOpenChange={setInviteMemberOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        Invite
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Invite Member</DialogTitle>
-                        <DialogDescription>Send an invitation to join this group</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div>
-                          <Label htmlFor="inviteEmail">Email Address</Label>
-                          <Input
-                            id="inviteEmail"
-                            type="email"
-                            value={inviteEmail}
-                            onChange={(e) => setInviteEmail(e.target.value)}
-                            placeholder="friend@example.com"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="inviteRole">Access Level</Label>
-                          <Select value={inviteRole} onValueChange={(v: any) => setInviteRole(v)}>
-                            <SelectTrigger className="bg-background z-50">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-background z-50">
-                              <SelectItem value="viewer">Viewer - Can view resources</SelectItem>
-                              <SelectItem value="member">Editor - Can add and edit resources</SelectItem>
-                              <SelectItem value="admin">Admin - Full control</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button onClick={inviteMember} className="w-full">Send Invitation</Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                <CardHeader>
+                  <CardTitle className="text-lg">My Groups</CardTitle>
+                  <CardDescription>Select a group to manage</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {members.map((member) => (
-                      <div key={member.id} className="px-3 py-1 bg-muted rounded-full text-sm flex items-center gap-1">
-                        <span>{getRoleDisplay(member.role)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Share */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Quick Share</CardTitle>
-                    <CardDescription>Updates in real-time</CardDescription>
-                  </div>
-                  <Dialog open={createResourceOpen} onOpenChange={(open) => {
-                    setCreateResourceOpen(open);
-                    if (!open) {
-                      setEditingResource(null);
-                      setResourceTitle('');
-                      setResourceContent('');
-                      setResourceType('note');
-                    }
-                  }}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="gap-2" disabled={!canShareResource}>
-                        <Plus className="w-4 h-4" />
-                        Share
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>{editingResource ? 'Edit Resource' : 'Share Resource'}</DialogTitle>
-                        <DialogDescription>
-                          {editingResource ? 'Update the resource details' : 'Add a resource for the group'}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div>
-                          <Label htmlFor="resourceType">Type</Label>
-                          <Select value={resourceType} onValueChange={(v: any) => setResourceType(v)}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="note">Note</SelectItem>
-                              <SelectItem value="link">Link</SelectItem>
-                              <SelectItem value="task">Task</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="resourceTitle">Title</Label>
-                          <Input
-                            id="resourceTitle"
-                            value={resourceTitle}
-                            onChange={(e) => setResourceTitle(e.target.value)}
-                            placeholder="e.g., Chapter 5 Notes"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="resourceContent">Content</Label>
-                          <Textarea
-                            id="resourceContent"
-                            value={resourceContent}
-                            onChange={(e) => setResourceContent(e.target.value)}
-                            placeholder="Add your notes, links, or details here..."
-                            rows={4}
-                          />
-                        </div>
-                        <Button onClick={createResource} className="w-full">
-                          {editingResource ? 'Update Resource' : 'Share Resource'}
+                <CardContent className="space-y-3">
+                  {groups.map((group) => (
+                    <Button
+                      key={group.id}
+                      variant={selectedGroup?.id === group.id ? 'default' : 'outline'}
+                      className="w-full justify-start"
+                      onClick={() => setSelectedGroup(group)}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      {group.name}
+                    </Button>
+                  ))}
+                  
+                  <Separator />
+                  
+                  {!showGroupForm ? (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowGroupForm(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Group
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <Input
+                        placeholder="Group name"
+                        value={groupForm.name}
+                        onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
+                      />
+                      <Textarea
+                        placeholder="Description (optional)"
+                        value={groupForm.description}
+                        onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })}
+                        rows={2}
+                      />
+                      <div className="flex gap-2">
+                        <Button onClick={createGroup} size="sm" className="flex-1">
+                          Create
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setShowGroupForm(false);
+                            setGroupForm({ name: '', description: '' });
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          Cancel
                         </Button>
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                </CardHeader>
-                <CardContent>
-                  {resources.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No resources yet. Share something to get started!
-                    </p>
-                  ) : (
-                      <div className="space-y-3">
-                        {resources.map((resource) => (
-                          <div key={resource.id} className="p-4 bg-muted/50 rounded-lg">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2">
-                                  {getResourceIcon(resource.resource_type)}
-                                  <h4 className="font-medium">{resource.title}</h4>
-                                </div>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
-                                  {resource.content}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  {format(new Date(resource.created_at), 'MMM dd, yyyy HH:mm')}
-                                </p>
-                              </div>
-                              {canEditResource(resource) && (
-                                <div className="flex gap-1">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => editResource(resource)}
-                                  >
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => deleteResource(resource.id)}
-                                  >
-                                    <Trash2 className="w-4 h-4 text-destructive" />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
             </div>
-          ) : (
-            <div className="lg:col-span-2">
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Select a group to view resources and members</p>
-                </CardContent>
-              </Card>
+
+            {/* Main Content */}
+            <div className="md:col-span-2 space-y-6">
+              {selectedGroup ? (
+                <>
+                  {/* Group Info */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{selectedGroup.name}</CardTitle>
+                      <CardDescription>{selectedGroup.description || 'No description'}</CardDescription>
+                    </CardHeader>
+                  </Card>
+
+                  {/* Invite Section */}
+                  {currentUserRole === 'admin' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <UserPlus className="h-5 w-5" />
+                          Invite Collaborators
+                        </CardTitle>
+                        <CardDescription>Add people to your group with specific access levels</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-4">
+                          <div>
+                            <Label htmlFor="invite-email">Email Address</Label>
+                            <Input
+                              id="invite-email"
+                              type="email"
+                              placeholder="colleague@example.com"
+                              value={inviteForm.email}
+                              onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="access-level">Access Level</Label>
+                            <Select
+                              value={inviteForm.accessLevel}
+                              onValueChange={(value) => setInviteForm({ ...inviteForm, accessLevel: value as AccessLevel })}
+                            >
+                              <SelectTrigger id="access-level">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="viewer">Viewer - Can only view resources</SelectItem>
+                                <SelectItem value="editor">Editor - Can view and edit resources</SelectItem>
+                                <SelectItem value="admin">Admin - Full control including invites</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button onClick={inviteMember}>
+                            <Mail className="h-4 w-4 mr-2" />
+                            Send Invitation
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Members List */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Members ({members.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {members.map((member) => (
+                          <div key={member.id} className="flex items-center justify-between p-2 rounded-lg border border-border">
+                            <span className="text-sm">{member.email}</span>
+                            <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground capitalize">
+                              {member.role}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Resource Form */}
+                  {currentUserRole !== 'viewer' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">
+                          {editingResourceId ? 'Edit Resource' : 'Share New Resource'}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-4">
+                          <div>
+                            <Label htmlFor="resource-type">Type</Label>
+                            <Select
+                              value={resourceForm.type}
+                              onValueChange={(value) => setResourceForm({ ...resourceForm, type: value as ResourceType })}
+                            >
+                              <SelectTrigger id="resource-type">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="note">Note</SelectItem>
+                                <SelectItem value="link">Link</SelectItem>
+                                <SelectItem value="task">Task</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="resource-title">Title</Label>
+                            <Input
+                              id="resource-title"
+                              placeholder="Resource title"
+                              value={resourceForm.title}
+                              onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="resource-content">Content</Label>
+                            <Textarea
+                              id="resource-content"
+                              placeholder="Resource content or URL"
+                              value={resourceForm.content}
+                              onChange={(e) => setResourceForm({ ...resourceForm, content: e.target.value })}
+                              rows={4}
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button onClick={createOrUpdateResource} className="flex-1">
+                              {editingResourceId ? 'Update' : 'Share'} Resource
+                            </Button>
+                            {editingResourceId && (
+                              <Button
+                                onClick={() => {
+                                  setResourceForm({ title: '', content: '', type: 'note' });
+                                  setEditingResourceId(null);
+                                }}
+                                variant="outline"
+                              >
+                                Cancel
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Resources List */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Shared Resources ({resources.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {resources.length === 0 ? (
+                          <p className="text-center text-muted-foreground py-8">
+                            No resources shared yet
+                          </p>
+                        ) : (
+                          resources.map((resource) => (
+                            <div key={resource.id} className="p-4 rounded-lg border border-border">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  {getResourceIcon(resource.resource_type)}
+                                  <h3 className="font-semibold text-foreground">{resource.title}</h3>
+                                </div>
+                                {currentUserRole !== 'viewer' && (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => editResource(resource)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => deleteResource(resource.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{resource.content}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <Card>
+                  <CardContent className="py-12">
+                    <div className="text-center text-muted-foreground">
+                      <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Select a group to view and manage resources</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-          )}
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
