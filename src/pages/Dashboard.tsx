@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -66,12 +66,12 @@ const Dashboard = () => {
       {/* Header */}
       <header className="border-b border-border/50 bg-background/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="p-2 bg-gradient-warm rounded-xl">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
             <span className="text-xl font-semibold text-foreground">StudyRoom</span>
-          </div>
+          </Link>
           
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:block">
