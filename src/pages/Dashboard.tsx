@@ -99,33 +99,51 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature, index) => (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left column: Track Everything + Activity History */}
+          <div className="lg:col-span-2 space-y-6">
             <Card 
-              key={index}
               className="p-6 hover:shadow-warm transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-              style={{ animationDelay: `${index * 0.1}s` }}
-              onClick={feature.onClick}
+              onClick={() => setTrackingDialogOpen(true)}
             >
-              <div className={`inline-flex p-3 rounded-xl ${feature.color} mb-4 group-hover:scale-110 transition-transform`}>
-                <feature.icon className="w-6 h-6 text-white" />
+              <div className="inline-flex p-3 rounded-xl bg-gradient-warm mb-4 group-hover:scale-110 transition-transform">
+                <LineChart className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                {feature.title}
+                Track Everything
               </h3>
               <p className="text-sm text-muted-foreground">
-                {feature.title === 'Track Everything' ? 'Click to log a session' : 'Coming soon'}
+                Click to log a session
               </p>
             </Card>
-          ))}
+
+            <ActivityHistory />
+          </div>
+
+          {/* Right column: Other features */}
+          <div className="space-y-6">
+            {features.slice(1).map((feature, index) => (
+              <Card 
+                key={index}
+                className="p-6 hover:shadow-warm transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
+                style={{ animationDelay: `${(index + 1) * 0.1}s` }}
+                onClick={feature.onClick}
+              >
+                <div className={`inline-flex p-3 rounded-xl ${feature.color} mb-4 group-hover:scale-110 transition-transform`}>
+                  <feature.icon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Coming soon
+                </p>
+              </Card>
+            ))}
+          </div>
         </div>
 
         <TrackingDialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen} />
-
-        {/* Activity History */}
-        <div className="mt-12">
-          <ActivityHistory />
-        </div>
 
         <Card className="mt-12 p-8 bg-gradient-hero border-border/50">
           <div className="text-center max-w-2xl mx-auto">
