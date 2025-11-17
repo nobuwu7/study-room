@@ -18,30 +18,39 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are an expert study schedule planner who understands circadian rhythms and optimal learning windows. 
-Create personalized study schedules that:
-- Align with the user's natural energy patterns
-- Include appropriate breaks based on biological needs
-- Follow proven study techniques like the Pomodoro method
-- Consider peak cognitive performance times
-- Suggest break activities that help with recovery
+    const systemPrompt = `You are an expert study schedule planner who creates concise, actionable schedules.
 
-Format your response as a structured daily schedule with specific time blocks, activities, and reasoning.`;
+Create schedules that:
+- Use ONE-LINER format for each time block (max 10 words)
+- Focus on clear, specific actions
+- Include time ranges (e.g., "7:00 AM - 8:00 AM")
+- Minimize explanations and theories
+- Use simple, direct language
 
-    const userPrompt = `Create a personalized daily study schedule for a student with these characteristics:
-- Sleep time: ${sleepTime}
-- Wake time: ${wakeTime}
-- Energy peaks: ${energyPeaks}
-- Study goals: ${studyGoals}
+Format each entry as:
+TIME_RANGE - Brief activity description
 
-Please provide:
-1. A detailed hour-by-hour schedule from wake time to sleep time
-2. Optimal study blocks aligned with their energy levels
-3. Strategic break times with suggested activities
-4. Reasoning for why each time block is scheduled that way
-5. Tips for maintaining this schedule
+Example format:
+7:00 AM - 8:00 AM - Morning routine & breakfast
+8:00 AM - 10:00 AM - Deep focus study session
+10:00 AM - 10:15 AM - Quick break, stretch
+`;
 
-Format the schedule clearly with time blocks, activities, and brief explanations.`;
+    const userPrompt = `Create a concise daily study schedule:
+
+Sleep: ${sleepTime}
+Wake: ${wakeTime}
+Energy peaks: ${energyPeaks}
+Goals: ${studyGoals}
+
+Provide a simple hour-by-hour schedule with:
+- Time blocks in format "HH:MM - HH:MM - Activity"
+- ONE brief line per time block
+- Strategic breaks every 90 minutes
+- Peak study times during high energy periods
+- 3-4 key tips at the end (one line each)
+
+Keep it simple and scannable. No long explanations.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
