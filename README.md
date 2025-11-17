@@ -1,26 +1,49 @@
-# Welcome to your Lovable project
+# StudyRoom 📚
 
-## Project info
+> A virtual study room application designed to help students understand and improve their study habits
 
-**URL**: https://lovable.dev/projects/0fc064bc-1798-437d-a623-e532f1edec4b
+**🏆 Student Hackpad Hackathon 2025 Entry**
 
-## How can I edit this code?
+## About StudyRoom
 
-There are several ways of editing your application.
+StudyRoom is a comprehensive study companion platform built to empower students with tools and insights to optimize their learning experience. Whether you're studying solo or with friends, StudyRoom helps you track, organize, and improve your study habits through an intuitive and cozy interface.
 
-**Use Lovable**
+### Key Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/0fc064bc-1798-437d-a623-e532f1edec4b) and start prompting.
+- **📊 Track Everything**: Monitor your study sessions with detailed tracking of duration, breaks, energy levels, and notes
+- **✅ Top 3 Tasks**: Stay focused on what matters most with daily priority task management
+- **📅 Personalized Study Schedules**: AI-powered schedule generation based on your sleep patterns and energy peaks
+- **📖 Bibliotheca**: Personal and group resource library with tagging and organization
+- **⏱️ Focus Timers**: Pomodoro timer to boost productivity and maintain focus
+- **💚 Mental Health Support**: Curated wellness articles and resources for student wellbeing
+- **📈 Analytics**: Visual insights into your study patterns to help you optimize your routine
+- **👥 Collaboration**: Share resources and study with friends in group spaces
+
+## Built With
+
+This project was created using [Lovable](https://lovable.dev) - an AI-powered web development platform that brings ideas to life.
+
+**Technology Stack:**
+- React + TypeScript
+- Vite
+- Tailwind CSS
+- shadcn-ui components
+- Supabase (via Lovable Cloud)
+- Next Themes for dark mode
+
+## Getting Started
+
+### Using Lovable (Recommended)
+
+Simply visit the [Lovable Project](https://lovable.dev/projects/0fc064bc-1798-437d-a623-e532f1edec4b) and start making changes through prompts.
 
 Changes made via Lovable will be committed automatically to this repo.
 
-**Use your preferred IDE**
+### Local Development
 
 If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Requirements: Node.js & npm ([install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
@@ -36,38 +59,48 @@ npm i
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Other Editing Options
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+**Edit a file directly in GitHub**
+- Navigate to the desired file(s)
+- Click the "Edit" button (pencil icon) at the top right of the file view
+- Make your changes and commit the changes
 
 **Use GitHub Codespaces**
+- Navigate to the main page of your repository
+- Click on the "Code" button (green button) near the top right
+- Select the "Codespaces" tab
+- Click on "New codespace" to launch a new Codespace environment
+- Edit files directly within the Codespace and commit and push your changes once you're done
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Design Philosophy
 
-## What technologies are used for this project?
+StudyRoom features a warm, cozy aesthetic designed to make studying feel welcoming and comfortable. The interface includes:
+- Light mode with warm coral and soft teal accents
+- Dynamic midnight dark mode with deep blacks and vibrant colors
+- Smooth transitions and intuitive navigation
+- Responsive design that works on all devices
 
-This project is built with:
+## Deployment
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Simply open [Lovable](https://lovable.dev/projects/0fc064bc-1798-437d-a623-e532f1edec4b) and click on Share → Publish.
 
-## How can I deploy this project?
+### Custom Domain
 
-Simply open [Lovable](https://lovable.dev/projects/0fc064bc-1798-437d-a623-e532f1edec4b) and click on Share -> Publish.
+You can connect a custom domain by navigating to Project > Settings > Domains and clicking Connect Domain.
 
-## Can I connect a custom domain to my Lovable project?
+Read more: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
 
-Yes, you can!
+## Hackathon Details
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+**Event**: Student Hackpad Hackathon 2025  
+**Category**: Educational Technology  
+**Goal**: Create tools that help students study smarter, not harder
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Contributing
+
+This is a hackathon project, but feedback and suggestions are welcome! Feel free to open an issue or reach out.
+
+---
+
+Built with ❤️ using [Lovable](https://lovable.dev) for Student Hackpad Hackathon 2025
