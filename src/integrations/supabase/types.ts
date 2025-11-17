@@ -81,6 +81,110 @@ export type Database = {
           },
         ]
       }
+      library_item_tags: {
+        Row: {
+          id: string
+          item_id: string
+          tag_id: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          tag_id: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_item_tags_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "library_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "library_item_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "library_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      library_items: {
+        Row: {
+          content: string
+          created_at: string
+          description: string | null
+          group_id: string | null
+          id: string
+          item_type: string
+          title: string
+          updated_at: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          item_type: string
+          title: string
+          updated_at?: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          item_type?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "study_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      library_tags: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          tag_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          tag_type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          tag_type?: string
+        }
+        Relationships: []
+      }
       mental_health_articles: {
         Row: {
           age_group: string

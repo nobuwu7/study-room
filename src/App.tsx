@@ -13,6 +13,7 @@ import FocusTimer from "./pages/FocusTimer";
 import MentalHealth from "./pages/MentalHealth";
 import Analytics from "./pages/Analytics";
 import Collaboration from "./pages/Collaboration";
+import Bibliotheca from "./pages/Bibliotheca";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/mental-health" element={<MentalHealth />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/collaboration" element={<Collaboration />} />
+            <Route path="/bibliotheca" element={<Bibliotheca />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
