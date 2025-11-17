@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/contexts/ProfileContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,7 @@ interface Article {
 
 const MentalHealth = () => {
   const { user } = useAuth();
+  const { activeProfile } = useProfile();
   const navigate = useNavigate();
   const [articles, setArticles] = useState<Article[]>([]);
   const [filteredArticles, setFilteredArticles] = useState<Article[]>([]);
@@ -55,10 +57,10 @@ const MentalHealth = () => {
 
   useEffect(() => {
     loadArticles();
-    if (user) {
+    if (activeProfile) {
       loadBookmarks();
     }
-  }, [user]);
+  }, [activeProfile]);
 
   useEffect(() => {
     filterArticles();
@@ -82,13 +84,13 @@ const MentalHealth = () => {
   };
 
   const loadBookmarks = async () => {
-    if (!user) return;
+    if (!activeProfile) return;
 
     try {
       const { data, error } = await supabase
         .from('mental_health_bookmarks')
         .select('article_id')
-        .eq('user_id', user.id);
+        .eq('profile_id', activeProfile.id);
 
       if (error) throw error;
       setBookmarkedIds(new Set(data?.map(b => b.article_id) || []));
@@ -98,8 +100,8 @@ const MentalHealth = () => {
   };
 
   const toggleBookmark = async (articleId: string) => {
-    if (!user) {
-      toast.error('Please sign in to bookmark articles');
+    if (!activeProfile) {
+      toast.error('Please select a profile');
       return;
     }
 
@@ -108,7 +110,7 @@ const MentalHealth = () => {
         const { error } = await supabase
           .from('mental_health_bookmarks')
           .delete()
-          .eq('user_id', user.id)
+          .eq('profile_id', activeProfile.id)
           .eq('article_id', articleId);
 
         if (error) throw error;
@@ -122,7 +124,8 @@ const MentalHealth = () => {
         const { error } = await supabase
           .from('mental_health_bookmarks')
           .insert({
-            user_id: user.id,
+            user_id: activeProfile.user_id,
+            profile_id: activeProfile.id,
             article_id: articleId,
           });
 

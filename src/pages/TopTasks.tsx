@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/contexts/ProfileContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ interface Task {
 
 const TopTasks = () => {
   const { user } = useAuth();
+  const { activeProfile } = useProfile();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,17 +37,19 @@ const TopTasks = () => {
   });
 
   useEffect(() => {
-    if (user) {
+    if (activeProfile) {
       loadTasks();
     }
-  }, [user]);
+  }, [activeProfile]);
 
   const loadTasks = async () => {
+    if (!activeProfile) return;
+    
     try {
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('profile_id', activeProfile.id)
         .order('priority', { ascending: true })
         .order('created_at', { ascending: false });
 
@@ -90,7 +94,8 @@ const TopTasks = () => {
         const { error } = await supabase
           .from('tasks')
           .insert({
-            user_id: user.id,
+            user_id: activeProfile.user_id,
+            profile_id: activeProfile.id,
             title: formData.title,
             description: formData.description || null,
             priority: formData.priority,

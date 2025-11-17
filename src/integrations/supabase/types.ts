@@ -20,20 +20,31 @@ export type Database = {
           created_by: string
           id: string
           name: string
+          profile_id: string | null
         }
         Insert: {
           created_at?: string
           created_by: string
           id?: string
           name: string
+          profile_id?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string
           id?: string
           name?: string
+          profile_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_tags_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       group_invitations: {
         Row: {
@@ -146,6 +157,7 @@ export type Database = {
           group_id: string | null
           id: string
           item_type: string
+          profile_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -158,6 +170,7 @@ export type Database = {
           group_id?: string | null
           id?: string
           item_type: string
+          profile_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -170,6 +183,7 @@ export type Database = {
           group_id?: string | null
           id?: string
           item_type?: string
+          profile_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -183,6 +197,13 @@ export type Database = {
             referencedRelation: "study_groups"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "library_items_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       library_tags: {
@@ -191,6 +212,7 @@ export type Database = {
           created_by: string
           id: string
           name: string
+          profile_id: string | null
           tag_type: string
         }
         Insert: {
@@ -198,6 +220,7 @@ export type Database = {
           created_by: string
           id?: string
           name: string
+          profile_id?: string | null
           tag_type: string
         }
         Update: {
@@ -205,9 +228,18 @@ export type Database = {
           created_by?: string
           id?: string
           name?: string
+          profile_id?: string | null
           tag_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "library_tags_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mental_health_articles: {
         Row: {
@@ -265,18 +297,21 @@ export type Database = {
           article_id: string
           created_at: string
           id: string
+          profile_id: string | null
           user_id: string
         }
         Insert: {
           article_id: string
           created_at?: string
           id?: string
+          profile_id?: string | null
           user_id: string
         }
         Update: {
           article_id?: string
           created_at?: string
           id?: string
+          profile_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -287,32 +322,42 @@ export type Database = {
             referencedRelation: "mental_health_articles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mental_health_bookmarks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string | null
-          email: string | null
-          full_name: string | null
           id: string
+          is_active: boolean | null
+          profile_name: string
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          id: string
+          id?: string
+          is_active?: boolean | null
+          profile_name: string
           updated_at?: string | null
+          user_id: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
-          email?: string | null
-          full_name?: string | null
           id?: string
+          is_active?: boolean | null
+          profile_name?: string
           updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -390,6 +435,7 @@ export type Database = {
           energy_peaks: string
           generated_schedule: string
           id: string
+          profile_id: string | null
           sleep_time: string
           study_goals: string
           updated_at: string
@@ -401,6 +447,7 @@ export type Database = {
           energy_peaks: string
           generated_schedule: string
           id?: string
+          profile_id?: string | null
           sleep_time: string
           study_goals: string
           updated_at?: string
@@ -412,13 +459,22 @@ export type Database = {
           energy_peaks?: string
           generated_schedule?: string
           id?: string
+          profile_id?: string | null
           sleep_time?: string
           study_goals?: string
           updated_at?: string
           user_id?: string
           wake_time?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "study_schedules_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       study_sessions: {
         Row: {
@@ -429,6 +485,7 @@ export type Database = {
           energy_level: Database["public"]["Enums"]["energy_level"]
           id: string
           notes: string | null
+          profile_id: string | null
           session_type: Database["public"]["Enums"]["session_type"]
           start_time: string
           updated_at: string
@@ -442,6 +499,7 @@ export type Database = {
           energy_level?: Database["public"]["Enums"]["energy_level"]
           id?: string
           notes?: string | null
+          profile_id?: string | null
           session_type?: Database["public"]["Enums"]["session_type"]
           start_time: string
           updated_at?: string
@@ -455,12 +513,21 @@ export type Database = {
           energy_level?: Database["public"]["Enums"]["energy_level"]
           id?: string
           notes?: string | null
+          profile_id?: string | null
           session_type?: Database["public"]["Enums"]["session_type"]
           start_time?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "study_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tag_collaborators: {
         Row: {
@@ -547,6 +614,7 @@ export type Database = {
           due_date: string | null
           id: string
           priority: number
+          profile_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -559,6 +627,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           priority?: number
+          profile_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -571,11 +640,20 @@ export type Database = {
           due_date?: string | null
           id?: string
           priority?: number
+          profile_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

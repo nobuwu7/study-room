@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { useProfile } from '@/contexts/ProfileContext';
 
 const formSchema = z.object({
   sessionType: z.enum(['solo', 'with_friends'], {
@@ -49,6 +50,7 @@ interface TrackingDialogProps {
 
 export const TrackingDialog = ({ open, onOpenChange, editSession, onSessionUpdated }: TrackingDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { activeProfile } = useProfile();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -79,10 +81,8 @@ export const TrackingDialog = ({ open, onOpenChange, editSession, onSessionUpdat
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error('You must be logged in to track sessions');
+      if (!activeProfile) {
+        toast.error('No active profile selected');
         return;
       }
 
@@ -95,7 +95,8 @@ export const TrackingDialog = ({ open, onOpenChange, editSession, onSessionUpdat
       }
 
       const sessionData = {
-        user_id: user.id,
+        user_id: activeProfile.user_id,
+        profile_id: activeProfile.id,
         session_type: data.sessionType,
         start_time: data.startTime,
         end_time: data.endTime || null,
