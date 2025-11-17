@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TrackingDialog } from '@/components/TrackingDialog';
+import { ActivityHistory } from '@/components/ActivityHistory';
 
 const Dashboard = () => {
   const { user, signOut, loading } = useAuth();
@@ -120,6 +121,11 @@ const Dashboard = () => {
         </div>
 
         <TrackingDialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen} />
+
+        {/* Activity History */}
+        <div className="mt-12">
+          <ActivityHistory />
+        </div>
 
         <Card className="mt-12 p-8 bg-gradient-hero border-border/50">
           <div className="text-center max-w-2xl mx-auto">
