@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProfile } from '@/contexts/ProfileContext';
 import { Button } from '@/components/ui/button';
-import { ProfileSwitcher } from '@/components/ProfileSwitcher';
 import { Card } from '@/components/ui/card';
 import { 
   BookOpen, 
@@ -23,7 +21,6 @@ import { ActivityHistory } from '@/components/ActivityHistory';
 
 const Dashboard = () => {
   const { user, signOut, loading } = useAuth();
-  const { activeProfile, loading: profileLoading } = useProfile();
   const navigate = useNavigate();
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<any>(null);
@@ -41,7 +38,7 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  if (loading || profileLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -49,7 +46,7 @@ const Dashboard = () => {
     );
   }
 
-  if (!user || !activeProfile) {
+  if (!user) {
     return null;
   }
 
@@ -76,7 +73,6 @@ const Dashboard = () => {
           </Link>
           
           <div className="flex items-center gap-4">
-            <ProfileSwitcher />
             <span className="text-sm text-muted-foreground hidden sm:block">
               {user.email}
             </span>

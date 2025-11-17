@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProfile } from '@/contexts/ProfileContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, LogOut, Clock, Moon, Coffee, TrendingUp } from 'lucide-react';
@@ -12,7 +11,6 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 
 const Analytics = () => {
   const { user, signOut, loading } = useAuth();
-  const { activeProfile } = useProfile();
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -24,19 +22,19 @@ const Analytics = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (activeProfile) {
+    if (user) {
       fetchSessions();
     }
-  }, [activeProfile]);
+  }, [user]);
 
   const fetchSessions = async () => {
-    if (!activeProfile) return;
+    if (!user) return;
     
     try {
       const { data, error} = await supabase
         .from('study_sessions')
         .select('*')
-        .eq('profile_id', activeProfile.id)
+        .eq('user_id', user.id)
         .order('start_time', { ascending: true });
 
       if (error) throw error;
