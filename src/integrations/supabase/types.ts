@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      study_schedules: {
+        Row: {
+          created_at: string
+          energy_peaks: string
+          generated_schedule: string
+          id: string
+          sleep_time: string
+          study_goals: string
+          updated_at: string
+          user_id: string
+          wake_time: string
+        }
+        Insert: {
+          created_at?: string
+          energy_peaks: string
+          generated_schedule: string
+          id?: string
+          sleep_time: string
+          study_goals: string
+          updated_at?: string
+          user_id: string
+          wake_time: string
+        }
+        Update: {
+          created_at?: string
+          energy_peaks?: string
+          generated_schedule?: string
+          id?: string
+          sleep_time?: string
+          study_goals?: string
+          updated_at?: string
+          user_id?: string
+          wake_time?: string
+        }
+        Relationships: []
+      }
       study_sessions: {
         Row: {
           break_type: Database["public"]["Enums"]["break_type"]
