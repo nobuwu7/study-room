@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      collaboration_tags: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       group_invitations: {
         Row: {
           created_at: string
@@ -440,6 +461,82 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      tag_collaborators: {
+        Row: {
+          access_level: string
+          created_at: string
+          id: string
+          invited_by: string
+          tag_id: string
+          user_email: string
+        }
+        Insert: {
+          access_level: string
+          created_at?: string
+          id?: string
+          invited_by: string
+          tag_id: string
+          user_email: string
+        }
+        Update: {
+          access_level?: string
+          created_at?: string
+          id?: string
+          invited_by?: string
+          tag_id?: string
+          user_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tag_collaborators_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "collaboration_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tagged_resources: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          resource_type: string
+          tag_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          resource_type: string
+          tag_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          resource_type?: string
+          tag_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tagged_resources_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "collaboration_tags"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
