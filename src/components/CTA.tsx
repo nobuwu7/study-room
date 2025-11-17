@@ -22,6 +22,7 @@ const CTA = () => {
           <Button 
             size="lg" 
             className="text-lg px-8 py-6 bg-gradient-warm hover:shadow-warm transition-all duration-300 hover:scale-105 group"
+            onClick={() => window.location.href = '/auth'}
           >
             Get Started Free
             <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -30,6 +31,7 @@ const CTA = () => {
             size="lg" 
             variant="outline" 
             className="text-lg px-8 py-6 border-2 hover:bg-muted/50 transition-all duration-300"
+            onClick={() => window.location.href = '/auth'}
           >
             Watch Demo
           </Button>

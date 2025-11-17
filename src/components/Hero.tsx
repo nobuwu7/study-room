@@ -27,6 +27,7 @@ const Hero = () => {
           <Button 
             size="lg" 
             className="text-lg px-8 py-6 bg-gradient-warm hover:shadow-warm transition-all duration-300 hover:scale-105"
+            onClick={() => window.location.href = '/auth'}
           >
             Start Tracking
           </Button>
@@ -34,6 +35,7 @@ const Hero = () => {
             size="lg" 
             variant="outline" 
             className="text-lg px-8 py-6 border-2 hover:bg-muted/50 transition-all duration-300"
+            onClick={() => window.location.href = '/auth'}
           >
             Explore Features
           </Button>
