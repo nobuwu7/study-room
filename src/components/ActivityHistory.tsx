@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Users, User, Battery, Coffee, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useProfile } from '@/contexts/ProfileContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,22 +39,22 @@ export const ActivityHistory = ({ onEditSession }: ActivityHistoryProps) => {
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
-  const { activeProfile } = useProfile();
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (activeProfile) {
+    if (user) {
       fetchSessions();
     }
-  }, [activeProfile]);
+  }, [user]);
 
   const fetchSessions = async () => {
-    if (!activeProfile) return;
+    if (!user) return;
     
     try {
       const { data, error } = await supabase
         .from('study_sessions')
         .select('*')
-        .eq('profile_id', activeProfile.id)
+        .eq('user_id', user.id)
         .order('start_time', { ascending: false })
         .limit(20);
 

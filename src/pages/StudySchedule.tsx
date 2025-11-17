@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProfile } from '@/contexts/ProfileContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +15,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 const StudySchedule = () => {
   const { user } = useAuth();
-  const { activeProfile } = useProfile();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,19 +30,19 @@ const StudySchedule = () => {
 
   // Load saved schedules on mount
   useEffect(() => {
-    if (activeProfile) {
+    if (user) {
       loadSavedSchedules();
     }
-  }, [activeProfile]);
+  }, [user]);
 
   const loadSavedSchedules = async () => {
-    if (!activeProfile) return;
+    if (!user) return;
 
     try {
       const { data, error } = await supabase
         .from('study_schedules')
         .select('*')
-        .eq('profile_id', activeProfile.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -79,8 +77,7 @@ const StudySchedule = () => {
         const { data, error } = await supabase
           .from('study_schedules')
           .insert({
-            user_id: activeProfile.user_id,
-            profile_id: activeProfile.id,
+            user_id: user.id,
             sleep_time: formData.sleepTime,
             wake_time: formData.wakeTime,
             energy_peaks: formData.energyPeaks,
