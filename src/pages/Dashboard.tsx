@@ -54,7 +54,7 @@ const Dashboard = () => {
     { icon: LineChart, title: 'Track Everything', description: 'Monitor your study sessions and progress', color: 'bg-gradient-warm', onClick: () => setTrackingDialogOpen(true) },
     { icon: ListChecks, title: 'Top 3 Tasks', description: 'Focus on your daily priorities', color: 'bg-gradient-calm', onClick: () => navigate('/top-tasks') },
     { icon: Calendar, title: 'Study Schedules', description: 'AI-powered schedules with calendar sync', color: 'bg-gradient-warm', onClick: () => navigate('/study-schedule') },
-    { icon: Share2, title: 'Share Resources', description: 'Coming soon', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: Share2, title: 'Bibliotheca', description: 'Coming soon', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
     { icon: Users, title: 'Collaboration', description: 'Study groups with real-time sync', color: 'bg-gradient-warm', onClick: () => navigate('/collaboration') },
     { icon: Timer, title: 'Focus Timers', description: 'Pomodoro timer for productivity', color: 'bg-gradient-calm', onClick: () => navigate('/focus-timer') },
     { icon: Heart, title: 'Mental Health', description: 'Wellness articles and resources', color: 'bg-gradient-warm', onClick: () => navigate('/mental-health') },
