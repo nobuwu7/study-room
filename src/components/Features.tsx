@@ -33,20 +33,14 @@ const Features = () => {
     {
       icon: Share2,
       title: "Quick Share Study Resources",
-      description: "Share notes, links, and resources with classmates instantly. Collaboration made simple and seamless.",
+      description: "Organize and manage your study materials with Bibliotheca. Keep your notes, links, and resources in one place.",
       gradient: "calm" as const,
-    },
-    {
-      icon: Users,
-      title: "Collaboration",
-      description: "Study together, even when apart. Join virtual study rooms with friends and stay motivated as a team.",
-      gradient: "warm" as const,
     },
     {
       icon: Timer,
       title: "Set Focus Timers",
       description: "Use Pomodoro or custom timers to maintain focus. Work in sprints, take breaks, and maximize your productivity.",
-      gradient: "calm" as const,
+      gradient: "warm" as const,
     },
     {
       icon: Heart,
@@ -73,7 +67,7 @@ const Features = () => {
             </span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            From tracking to collaboration, we've got all the tools to make studying easier, smarter, and more enjoyable.
+            From tracking to analytics, we've got all the tools to make studying easier, smarter, and more enjoyable.
           </p>
         </div>
 
