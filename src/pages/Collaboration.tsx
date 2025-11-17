@@ -8,27 +8,27 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { BookOpen, LogOut, Users, Plus, Mail, FileText, Link as LinkIcon, CheckSquare, Trash2, Edit, UserPlus } from 'lucide-react';
+import { BookOpen, LogOut, Tag, Plus, Mail, FileText, Link as LinkIcon, CheckSquare, Trash2, Edit, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 type AccessLevel = 'viewer' | 'editor' | 'admin';
 type ResourceType = 'note' | 'link' | 'task';
 
-interface Group {
+interface CollabTag {
   id: string;
   name: string;
-  description: string;
+  created_by: string;
+  created_at: string;
 }
 
-interface Member {
+interface Collaborator {
   id: string;
-  user_id: string;
-  role: AccessLevel;
-  email: string;
+  user_email: string;
+  access_level: AccessLevel;
 }
 
-interface Resource {
+interface TaggedResource {
   id: string;
   title: string;
   content: string;
@@ -41,12 +41,13 @@ const Collaboration = () => {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
   
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<AccessLevel | null>(null);
+  const [tags, setTags] = useState<CollabTag[]>([]);
+  const [selectedTag, setSelectedTag] = useState<CollabTag | null>(null);
+  const [currentUserAccess, setCurrentUserAccess] = useState<AccessLevel | null>(null);
+  const [isTagOwner, setIsTagOwner] = useState(false);
   
   // Resources
-  const [resources, setResources] = useState<Resource[]>([]);
+  const [resources, setResources] = useState<TaggedResource[]>([]);
   const [resourceForm, setResourceForm] = useState({
     title: '',
     content: '',
@@ -54,8 +55,8 @@ const Collaboration = () => {
   });
   const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
   
-  // Members
-  const [members, setMembers] = useState<Member[]>([]);
+  // Collaborators
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   
   // Invitations
   const [inviteForm, setInviteForm] = useState({
@@ -63,13 +64,9 @@ const Collaboration = () => {
     accessLevel: 'viewer' as AccessLevel
   });
   
-  // Group creation
-  const [groupForm, setGroupForm] = useState({
-    name: '',
-    description: ''
-  });
-  
-  const [showGroupForm, setShowGroupForm] = useState(false);
+  // Tag creation
+  const [tagForm, setTagForm] = useState('');
+  const [showTagForm, setShowTagForm] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -79,150 +76,163 @@ const Collaboration = () => {
 
   useEffect(() => {
     if (user) {
-      fetchGroups();
+      fetchTags();
     }
   }, [user]);
 
   useEffect(() => {
-    if (selectedGroup && user) {
-      fetchGroupData();
+    if (selectedTag && user) {
+      fetchTagData();
       setupRealtimeSubscriptions();
       
       return () => {
         supabase.removeAllChannels();
       };
     }
-  }, [selectedGroup, user]);
+  }, [selectedTag, user]);
 
-  const fetchGroups = async () => {
+  const fetchTags = async () => {
     const { data, error } = await supabase
-      .from('study_groups')
+      .from('collaboration_tags')
       .select('*')
       .order('created_at', { ascending: false });
     
     if (error) {
-      toast.error('Failed to load groups');
+      toast.error('Failed to load tags');
       return;
     }
     
-    setGroups(data || []);
+    setTags(data || []);
   };
 
-  const fetchGroupData = async () => {
-    if (!selectedGroup) return;
+  const fetchTagData = async () => {
+    if (!selectedTag) return;
     
-    // Fetch user role
-    const { data: roleData } = await supabase
-      .from('group_members')
-      .select('role')
-      .eq('group_id', selectedGroup.id)
-      .eq('user_id', user?.id)
+    // Check if user is the tag owner
+    setIsTagOwner(selectedTag.created_by === user?.id);
+    
+    // Fetch user's access level
+    const { data: accessData } = await supabase
+      .from('tag_collaborators')
+      .select('access_level')
+      .eq('tag_id', selectedTag.id)
+      .eq('user_email', user?.email)
       .single();
     
-    setCurrentUserRole((roleData?.role as AccessLevel) || null);
+    setCurrentUserAccess((accessData?.access_level as AccessLevel) || (isTagOwner ? 'admin' : null));
     
     // Fetch resources
     const { data: resourcesData } = await supabase
-      .from('shared_resources')
+      .from('tagged_resources')
       .select('*')
-      .eq('group_id', selectedGroup.id)
+      .eq('tag_id', selectedTag.id)
       .order('created_at', { ascending: false });
     
-    setResources((resourcesData || []) as Resource[]);
+    setResources((resourcesData || []) as TaggedResource[]);
     
-    // Fetch members with emails
-    const { data: membersData } = await supabase
-      .from('group_members')
-      .select('id, user_id, role')
-      .eq('group_id', selectedGroup.id);
+    // Fetch collaborators
+    const { data: collabsData } = await supabase
+      .from('tag_collaborators')
+      .select('id, user_email, access_level')
+      .eq('tag_id', selectedTag.id);
     
-    if (membersData) {
-      const membersWithEmails = await Promise.all(
-        membersData.map(async (member) => {
-          const { data: userData } = await supabase.rpc('get_user_email', {
-            _user_id: member.user_id
-          });
-          return { ...member, email: userData || 'Unknown', role: member.role as AccessLevel };
-        })
-      );
-      setMembers(membersWithEmails);
-    }
+    setCollaborators((collabsData || []) as Collaborator[]);
   };
 
   const setupRealtimeSubscriptions = () => {
-    if (!selectedGroup) return;
+    if (!selectedTag) return;
     
     const channel = supabase
-      .channel(`group-${selectedGroup.id}`)
+      .channel(`tag-${selectedTag.id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'shared_resources',
-          filter: `group_id=eq.${selectedGroup.id}`
+          table: 'tagged_resources',
+          filter: `tag_id=eq.${selectedTag.id}`
         },
-        () => fetchGroupData()
+        () => fetchTagData()
       )
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'group_members',
-          filter: `group_id=eq.${selectedGroup.id}`
+          table: 'tag_collaborators',
+          filter: `tag_id=eq.${selectedTag.id}`
         },
-        () => fetchGroupData()
+        () => fetchTagData()
       )
       .subscribe();
   };
 
-  const createGroup = async () => {
-    if (!groupForm.name.trim()) {
-      toast.error('Group name is required');
+  const createTag = async () => {
+    if (!tagForm.trim()) {
+      toast.error('Tag name is required');
       return;
     }
     
     const { data, error } = await supabase
-      .from('study_groups')
+      .from('collaboration_tags')
       .insert({
-        name: groupForm.name,
-        description: groupForm.description,
+        name: tagForm,
         created_by: user?.id
       })
       .select()
       .single();
     
     if (error) {
-      toast.error('Failed to create group');
+      toast.error('Failed to create tag');
       return;
     }
     
-    toast.success('Group created successfully');
-    setGroupForm({ name: '', description: '' });
-    setShowGroupForm(false);
-    fetchGroups();
-    setSelectedGroup(data);
+    toast.success('Tag created successfully');
+    setTagForm('');
+    setShowTagForm(false);
+    fetchTags();
+    setSelectedTag(data);
   };
 
-  const inviteMember = async () => {
-    if (!selectedGroup || !inviteForm.email.trim()) {
-      toast.error('Email is required');
-      return;
-    }
-    
-    if (currentUserRole !== 'admin') {
-      toast.error('Only admins can invite members');
+  const deleteTag = async () => {
+    if (!selectedTag || !isTagOwner) {
+      toast.error('Only tag owners can delete tags');
       return;
     }
     
     const { error } = await supabase
-      .from('group_invitations')
+      .from('collaboration_tags')
+      .delete()
+      .eq('id', selectedTag.id);
+    
+    if (error) {
+      toast.error('Failed to delete tag');
+      return;
+    }
+    
+    toast.success('Tag deleted successfully');
+    setSelectedTag(null);
+    fetchTags();
+  };
+
+  const inviteCollaborator = async () => {
+    if (!selectedTag || !inviteForm.email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+    
+    if (!isTagOwner && currentUserAccess !== 'admin') {
+      toast.error('Only tag owners and admins can invite collaborators');
+      return;
+    }
+    
+    const { error } = await supabase
+      .from('tag_collaborators')
       .insert({
-        group_id: selectedGroup.id,
-        invited_email: inviteForm.email,
+        tag_id: selectedTag.id,
+        user_email: inviteForm.email,
         invited_by: user?.id,
-        role: inviteForm.accessLevel
+        access_level: inviteForm.accessLevel
       });
     
     if (error) {
@@ -234,20 +244,39 @@ const Collaboration = () => {
     setInviteForm({ email: '', accessLevel: 'viewer' });
   };
 
+  const removeCollaborator = async (collaboratorId: string) => {
+    if (!isTagOwner && currentUserAccess !== 'admin') {
+      toast.error('Only tag owners and admins can remove collaborators');
+      return;
+    }
+    
+    const { error } = await supabase
+      .from('tag_collaborators')
+      .delete()
+      .eq('id', collaboratorId);
+    
+    if (error) {
+      toast.error('Failed to remove collaborator');
+      return;
+    }
+    
+    toast.success('Collaborator removed successfully');
+  };
+
   const createOrUpdateResource = async () => {
-    if (!selectedGroup || !resourceForm.title.trim() || !resourceForm.content.trim()) {
+    if (!selectedTag || !resourceForm.title.trim() || !resourceForm.content.trim()) {
       toast.error('Title and content are required');
       return;
     }
     
-    if (currentUserRole === 'viewer') {
+    if (!isTagOwner && currentUserAccess === 'viewer') {
       toast.error('Viewers cannot create or edit resources');
       return;
     }
     
     if (editingResourceId) {
       const { error } = await supabase
-        .from('shared_resources')
+        .from('tagged_resources')
         .update({
           title: resourceForm.title,
           content: resourceForm.content,
@@ -263,9 +292,9 @@ const Collaboration = () => {
       toast.success('Resource updated successfully');
     } else {
       const { error } = await supabase
-        .from('shared_resources')
+        .from('tagged_resources')
         .insert({
-          group_id: selectedGroup.id,
+          tag_id: selectedTag.id,
           title: resourceForm.title,
           content: resourceForm.content,
           resource_type: resourceForm.type,
@@ -284,8 +313,8 @@ const Collaboration = () => {
     setEditingResourceId(null);
   };
 
-  const editResource = (resource: Resource) => {
-    if (currentUserRole === 'viewer') {
+  const editResource = (resource: TaggedResource) => {
+    if (!isTagOwner && currentUserAccess === 'viewer') {
       toast.error('Viewers cannot edit resources');
       return;
     }
@@ -299,13 +328,13 @@ const Collaboration = () => {
   };
 
   const deleteResource = async (id: string) => {
-    if (currentUserRole === 'viewer') {
+    if (!isTagOwner && currentUserAccess === 'viewer') {
       toast.error('Viewers cannot delete resources');
       return;
     }
     
     const { error } = await supabase
-      .from('shared_resources')
+      .from('tagged_resources')
       .delete()
       .eq('id', id);
     
@@ -365,61 +394,55 @@ const Collaboration = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold text-foreground mb-2">Collaboration</h1>
-          <p className="text-muted-foreground mb-8">Share and collaborate on study resources with your groups</p>
+          <p className="text-muted-foreground mb-8">Organize and share study resources using tags</p>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {/* Groups Sidebar */}
+            {/* Tags Sidebar */}
             <div className="md:col-span-1">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">My Groups</CardTitle>
-                  <CardDescription>Select a group to manage</CardDescription>
+                  <CardTitle className="text-lg">My Tags</CardTitle>
+                  <CardDescription>Organize resources by tags</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {groups.map((group) => (
+                  {tags.map((tag) => (
                     <Button
-                      key={group.id}
-                      variant={selectedGroup?.id === group.id ? 'default' : 'outline'}
+                      key={tag.id}
+                      variant={selectedTag?.id === tag.id ? 'default' : 'outline'}
                       className="w-full justify-start"
-                      onClick={() => setSelectedGroup(group)}
+                      onClick={() => setSelectedTag(tag)}
                     >
-                      <Users className="h-4 w-4 mr-2" />
-                      {group.name}
+                      <Tag className="h-4 w-4 mr-2" />
+                      {tag.name}
                     </Button>
                   ))}
                   
                   <Separator />
                   
-                  {!showGroupForm ? (
+                  {!showTagForm ? (
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => setShowGroupForm(true)}
+                      onClick={() => setShowTagForm(true)}
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Create Group
+                      Create Tag
                     </Button>
                   ) : (
                     <div className="space-y-3">
                       <Input
-                        placeholder="Group name"
-                        value={groupForm.name}
-                        onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
-                      />
-                      <Textarea
-                        placeholder="Description (optional)"
-                        value={groupForm.description}
-                        onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })}
-                        rows={2}
+                        placeholder="Tag name (e.g., Math Study)"
+                        value={tagForm}
+                        onChange={(e) => setTagForm(e.target.value)}
                       />
                       <div className="flex gap-2">
-                        <Button onClick={createGroup} size="sm" className="flex-1">
+                        <Button onClick={createTag} size="sm" className="flex-1">
                           Create
                         </Button>
                         <Button
                           onClick={() => {
-                            setShowGroupForm(false);
-                            setGroupForm({ name: '', description: '' });
+                            setShowTagForm(false);
+                            setTagForm('');
                           }}
                           variant="outline"
                           size="sm"
@@ -436,25 +459,44 @@ const Collaboration = () => {
 
             {/* Main Content */}
             <div className="md:col-span-2 space-y-6">
-              {selectedGroup ? (
+              {selectedTag ? (
                 <>
-                  {/* Group Info */}
+                  {/* Tag Info */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>{selectedGroup.name}</CardTitle>
-                      <CardDescription>{selectedGroup.description || 'No description'}</CardDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <Tag className="h-5 w-5" />
+                            {selectedTag.name}
+                          </CardTitle>
+                          <CardDescription className="mt-1">
+                            {isTagOwner ? 'You own this tag' : `Collaborating (${currentUserAccess})`}
+                          </CardDescription>
+                        </div>
+                        {isTagOwner && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={deleteTag}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Tag
+                          </Button>
+                        )}
+                      </div>
                     </CardHeader>
                   </Card>
 
                   {/* Invite Section */}
-                  {currentUserRole === 'admin' && (
+                  {(isTagOwner || currentUserAccess === 'admin') && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
                           <UserPlus className="h-5 w-5" />
                           Invite Collaborators
                         </CardTitle>
-                        <CardDescription>Add people to your group with specific access levels</CardDescription>
+                        <CardDescription>Add people to this tag with specific access levels</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="grid gap-4">
@@ -484,7 +526,7 @@ const Collaboration = () => {
                               </SelectContent>
                             </Select>
                           </div>
-                          <Button onClick={inviteMember}>
+                          <Button onClick={inviteCollaborator}>
                             <Mail className="h-4 w-4 mr-2" />
                             Send Invitation
                           </Button>
@@ -493,27 +535,42 @@ const Collaboration = () => {
                     </Card>
                   )}
 
-                  {/* Members List */}
+                  {/* Collaborators List */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Members ({members.length})</CardTitle>
+                      <CardTitle className="text-lg">Collaborators ({collaborators.length})</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {members.map((member) => (
-                          <div key={member.id} className="flex items-center justify-between p-2 rounded-lg border border-border">
-                            <span className="text-sm">{member.email}</span>
-                            <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground capitalize">
-                              {member.role}
-                            </span>
-                          </div>
-                        ))}
+                        {collaborators.length === 0 ? (
+                          <p className="text-center text-muted-foreground py-4">No collaborators yet</p>
+                        ) : (
+                          collaborators.map((collab) => (
+                            <div key={collab.id} className="flex items-center justify-between p-2 rounded-lg border border-border">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{collab.user_email}</span>
+                                <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground capitalize">
+                                  {collab.access_level}
+                                </span>
+                              </div>
+                              {(isTagOwner || currentUserAccess === 'admin') && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeCollaborator(collab.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))
+                        )}
                       </div>
                     </CardContent>
                   </Card>
 
                   {/* Resource Form */}
-                  {currentUserRole !== 'viewer' && (
+                  {(isTagOwner || currentUserAccess !== 'viewer') && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-lg">
@@ -597,7 +654,7 @@ const Collaboration = () => {
                                   {getResourceIcon(resource.resource_type)}
                                   <h3 className="font-semibold text-foreground">{resource.title}</h3>
                                 </div>
-                                {currentUserRole !== 'viewer' && (
+                                {(isTagOwner || currentUserAccess !== 'viewer') && (
                                   <div className="flex gap-2">
                                     <Button
                                       size="sm"
@@ -628,8 +685,8 @@ const Collaboration = () => {
                 <Card>
                   <CardContent className="py-12">
                     <div className="text-center text-muted-foreground">
-                      <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Select a group to view and manage resources</p>
+                      <Tag className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Select a tag to view and manage resources</p>
                     </div>
                   </CardContent>
                 </Card>
