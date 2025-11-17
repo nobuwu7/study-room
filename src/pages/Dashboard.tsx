@@ -58,7 +58,7 @@ const Dashboard = () => {
     { icon: Users, title: 'Collaboration', description: 'Coming soon', color: 'bg-gradient-warm', onClick: () => toast.info('Feature coming soon!') },
     { icon: Timer, title: 'Focus Timers', description: 'Pomodoro timer for productivity', color: 'bg-gradient-calm', onClick: () => navigate('/focus-timer') },
     { icon: Heart, title: 'Mental Health', description: 'Wellness articles and resources', color: 'bg-gradient-warm', onClick: () => navigate('/mental-health') },
-    { icon: BarChart3, title: 'Analytics', description: 'Coming soon', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: BarChart3, title: 'Analytics', description: 'Visual insights into your study patterns', color: 'bg-gradient-calm', onClick: () => navigate('/analytics') },
   ];
 
   return (
