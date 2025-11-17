@@ -278,60 +278,101 @@ const StudySchedule = () => {
                         <h3 className="text-lg font-semibold">Daily Breakdown</h3>
                       </div>
                       
-                      <div className="bg-muted/30 rounded-lg p-6 space-y-4">
-                        {schedule.split('\n').map((line, index) => {
-                          // Skip empty lines
-                          if (!line.trim()) return null;
+                      <div className="space-y-3">
+                        {schedule.split('\n').filter(line => line.trim()).map((line, index) => {
+                          const lowerLine = line.toLowerCase();
                           
-                          // Check if line contains time patterns (HH:MM or similar)
-                          const timePattern = /(\d{1,2}:\d{2}|\d{1,2}\s*[AaPp][Mm])/;
-                          const isTimeBlock = timePattern.test(line);
+                          // Parse time patterns
+                          const timeMatch = line.match(/(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-–—]\s*(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)/);
+                          const singleTimeMatch = line.match(/^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)/);
                           
-                          // Check for section headers (lines with colons or all caps)
-                          const isSectionHeader = (line.includes(':') && !isTimeBlock) || 
-                                                 (line === line.toUpperCase() && line.length > 5);
-                          
-                          // Identify activity types for icons
-                          const getIcon = () => {
-                            const lowerLine = line.toLowerCase();
-                            if (lowerLine.includes('wake') || lowerLine.includes('morning')) return <Sunrise className="w-4 h-4" />;
-                            if (lowerLine.includes('study') || lowerLine.includes('focus')) return <Brain className="w-4 h-4" />;
-                            if (lowerLine.includes('break') || lowerLine.includes('rest')) return <Coffee className="w-4 h-4" />;
-                            if (lowerLine.includes('sleep') || lowerLine.includes('night')) return <Moon className="w-4 h-4" />;
-                            if (lowerLine.includes('energy') || lowerLine.includes('peak')) return <Sun className="w-4 h-4" />;
-                            return <Clock className="w-4 h-4" />;
-                          };
-                          
-                          if (isSectionHeader) {
+                          // Section headers (numbered or all caps)
+                          if (line.match(/^\d+\./) || (line === line.toUpperCase() && line.length > 5 && !timeMatch)) {
                             return (
-                              <div key={index} className="pt-4 first:pt-0">
-                                <h4 className="text-base font-semibold text-primary flex items-center gap-2">
-                                  <Lightbulb className="w-4 h-4" />
-                                  {line.replace(':', '')}
+                              <div key={index} className="pt-6 first:pt-0">
+                                <h4 className="text-base font-bold text-primary flex items-center gap-2 mb-3">
+                                  <Sparkles className="w-4 h-4" />
+                                  {line.replace(/^\d+\.\s*/, '')}
                                 </h4>
                               </div>
                             );
                           }
                           
-                          if (isTimeBlock) {
+                          // Time blocks with range
+                          if (timeMatch) {
+                            const [, startTime, endTime] = timeMatch;
+                            const restOfLine = line.replace(timeMatch[0], '').replace(/^[\s:-]+/, '');
+                            
+                            // Determine activity type and color
+                            let bgColor = 'bg-background';
+                            let borderColor = 'border-border/50';
+                            let icon = <Clock className="w-4 h-4" />;
+                            
+                            if (lowerLine.includes('study') || lowerLine.includes('focus') || lowerLine.includes('work')) {
+                              bgColor = 'bg-blue-50/50 dark:bg-blue-950/20';
+                              borderColor = 'border-blue-200/50';
+                              icon = <Brain className="w-4 h-4 text-blue-600" />;
+                            } else if (lowerLine.includes('break') || lowerLine.includes('rest') || lowerLine.includes('lunch') || lowerLine.includes('snack')) {
+                              bgColor = 'bg-orange-50/50 dark:bg-orange-950/20';
+                              borderColor = 'border-orange-200/50';
+                              icon = <Coffee className="w-4 h-4 text-orange-600" />;
+                            } else if (lowerLine.includes('wake') || lowerLine.includes('morning')) {
+                              bgColor = 'bg-yellow-50/50 dark:bg-yellow-950/20';
+                              borderColor = 'border-yellow-200/50';
+                              icon = <Sunrise className="w-4 h-4 text-yellow-600" />;
+                            } else if (lowerLine.includes('sleep') || lowerLine.includes('wind down')) {
+                              bgColor = 'bg-purple-50/50 dark:bg-purple-950/20';
+                              borderColor = 'border-purple-200/50';
+                              icon = <Moon className="w-4 h-4 text-purple-600" />;
+                            } else if (lowerLine.includes('exercise') || lowerLine.includes('workout')) {
+                              bgColor = 'bg-green-50/50 dark:bg-green-950/20';
+                              borderColor = 'border-green-200/50';
+                              icon = <Sun className="w-4 h-4 text-green-600" />;
+                            }
+                            
                             return (
-                              <div 
-                                key={index} 
-                                className="flex items-start gap-3 p-3 bg-background rounded-lg border border-border/50 hover:border-primary/50 transition-colors"
-                              >
-                                <div className="mt-1 text-primary">
-                                  {getIcon()}
-                                </div>
-                                <p className="flex-1 text-sm leading-relaxed">{line}</p>
+                              <Card key={index} className={`${bgColor} border ${borderColor} shadow-sm`}>
+                                <CardContent className="p-4">
+                                  <div className="flex items-start gap-3">
+                                    <div className="mt-0.5">
+                                      {icon}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <Badge variant="outline" className="font-mono text-xs">
+                                          {startTime} - {endTime}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm font-medium leading-relaxed">
+                                        {restOfLine || 'Activity'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          }
+                          
+                          // Regular text or tips
+                          if (line.trim().startsWith('-') || line.trim().startsWith('•') || line.trim().startsWith('*')) {
+                            return (
+                              <div key={index} className="flex items-start gap-2 pl-7 text-sm text-muted-foreground">
+                                <span className="text-primary mt-1">•</span>
+                                <span className="flex-1">{line.replace(/^[\s\-•*]+/, '')}</span>
                               </div>
                             );
                           }
                           
-                          return (
-                            <p key={index} className="text-sm text-muted-foreground leading-relaxed pl-7">
-                              {line}
-                            </p>
-                          );
+                          // Other descriptive text
+                          if (line.trim() && !timeMatch && !singleTimeMatch) {
+                            return (
+                              <p key={index} className="text-sm text-muted-foreground leading-relaxed pl-7">
+                                {line}
+                              </p>
+                            );
+                          }
+                          
+                          return null;
                         })}
                       </div>
                     </div>
