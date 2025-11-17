@@ -21,6 +21,7 @@ export type Database = {
           id: string
           invited_by: string
           invited_email: string
+          role: string
           status: string
         }
         Insert: {
@@ -29,6 +30,7 @@ export type Database = {
           id?: string
           invited_by: string
           invited_email: string
+          role?: string
           status?: string
         }
         Update: {
@@ -37,6 +39,7 @@ export type Database = {
           id?: string
           invited_by?: string
           invited_email?: string
+          role?: string
           status?: string
         }
         Relationships: [
