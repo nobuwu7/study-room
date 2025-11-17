@@ -56,7 +56,7 @@ const Dashboard = () => {
     { icon: Calendar, title: 'Study Schedules', description: 'AI-powered schedules with calendar sync', color: 'bg-gradient-warm', onClick: () => navigate('/study-schedule') },
     { icon: Share2, title: 'Share Resources', description: 'Coming soon', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
     { icon: Users, title: 'Collaboration', description: 'Coming soon', color: 'bg-gradient-warm', onClick: () => toast.info('Feature coming soon!') },
-    { icon: Timer, title: 'Focus Timers', description: 'Coming soon', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: Timer, title: 'Focus Timers', description: 'Pomodoro timer for productivity', color: 'bg-gradient-calm', onClick: () => navigate('/focus-timer') },
     { icon: Heart, title: 'Mental Health', description: 'Coming soon', color: 'bg-gradient-warm', onClick: () => toast.info('Feature coming soon!') },
     { icon: BarChart3, title: 'Analytics', description: 'Coming soon', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
   ];
