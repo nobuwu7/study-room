@@ -23,6 +23,8 @@ const Dashboard = () => {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<any>(null);
+  const [activityKey, setActivityKey] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -125,7 +127,13 @@ const Dashboard = () => {
                 </Button>
               </div>
 
-              <ActivityHistory />
+              <ActivityHistory 
+                key={activityKey}
+                onEditSession={(session) => {
+                  setEditingSession(session);
+                  setTrackingDialogOpen(true);
+                }}
+              />
             </Card>
           </div>
 
@@ -152,7 +160,20 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <TrackingDialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen} />
+        <TrackingDialog 
+          open={trackingDialogOpen} 
+          onOpenChange={(open) => {
+            setTrackingDialogOpen(open);
+            if (!open) {
+              setEditingSession(null);
+            }
+          }}
+          editSession={editingSession}
+          onSessionUpdated={() => {
+            setActivityKey(prev => prev + 1);
+            setEditingSession(null);
+          }}
+        />
 
         <Card className="mt-12 p-8 bg-gradient-hero border-border/50">
           <div className="text-center max-w-2xl mx-auto">
