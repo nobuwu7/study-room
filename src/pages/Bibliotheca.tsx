@@ -31,7 +31,7 @@ const Bibliotheca = () => {
   const [itemTitle, setItemTitle] = useState('');
   const [itemDescription, setItemDescription] = useState('');
   const [itemContent, setItemContent] = useState('');
-  const [itemType, setItemType] = useState<'book' | 'article' | 'video' | 'document' | 'link' | 'note'>('book');
+  const [itemType, setItemType] = useState<'auto-detect' | 'book' | 'article' | 'video' | 'document' | 'link' | 'note'>('auto-detect');
   const [itemVisibility, setItemVisibility] = useState<'personal' | 'group'>('personal');
   const [itemGroupId, setItemGroupId] = useState('');
   const [itemTags, setItemTags] = useState<string[]>([]);
@@ -178,6 +178,50 @@ const Bibliotheca = () => {
     }
   };
 
+  const detectItemType = (content: string): 'book' | 'article' | 'video' | 'document' | 'link' | 'note' => {
+    const lowerContent = content.toLowerCase().trim();
+    
+    // Check for URLs
+    if (lowerContent.startsWith('http://') || lowerContent.startsWith('https://') || lowerContent.startsWith('www.')) {
+      // Video URLs
+      if (lowerContent.includes('youtube.com') || lowerContent.includes('youtu.be') || 
+          lowerContent.includes('vimeo.com') || lowerContent.includes('dailymotion.com')) {
+        return 'video';
+      }
+      // Document URLs
+      if (lowerContent.includes('.pdf') || lowerContent.includes('.doc') || 
+          lowerContent.includes('.docx') || lowerContent.includes('.ppt')) {
+        return 'document';
+      }
+      // Default to link for other URLs
+      return 'link';
+    }
+    
+    // Check for file extensions in content
+    if (lowerContent.includes('.pdf') || lowerContent.includes('.docx') || lowerContent.includes('.doc')) {
+      return 'document';
+    }
+    
+    // Check for video file extensions
+    if (lowerContent.includes('.mp4') || lowerContent.includes('.avi') || lowerContent.includes('.mov')) {
+      return 'video';
+    }
+    
+    // Check for book-related keywords
+    if (lowerContent.includes('isbn') || lowerContent.includes('chapter') || 
+        (lowerContent.includes('book') && lowerContent.length < 200)) {
+      return 'book';
+    }
+    
+    // Check for article indicators (longer content with paragraphs)
+    if (content.length > 300 && (lowerContent.includes('abstract') || lowerContent.includes('author:'))) {
+      return 'article';
+    }
+    
+    // Default to note for short text content
+    return 'note';
+  };
+
   const createItem = async () => {
     if (!itemTitle.trim() || !itemContent.trim()) {
       toast.error('Title and content are required');
@@ -190,6 +234,9 @@ const Bibliotheca = () => {
     }
 
     try {
+      // Auto-detect type if selected
+      const finalType = itemType === 'auto-detect' ? detectItemType(itemContent) : itemType;
+      
       const { data: itemData, error: itemError } = await supabase
         .from('library_items')
         .insert({
@@ -197,7 +244,7 @@ const Bibliotheca = () => {
           title: itemTitle,
           description: itemDescription,
           content: itemContent,
-          item_type: itemType,
+          item_type: finalType,
           visibility: itemVisibility,
           group_id: itemVisibility === 'group' ? itemGroupId : null
         })
@@ -224,7 +271,7 @@ const Bibliotheca = () => {
       setItemTitle('');
       setItemDescription('');
       setItemContent('');
-      setItemType('book');
+      setItemType('auto-detect');
       setItemVisibility('personal');
       setItemGroupId('');
       setItemTags([]);
@@ -373,7 +420,7 @@ const Bibliotheca = () => {
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-background z-50">
                         <SelectItem value="subject">Subject</SelectItem>
                         <SelectItem value="course">Course</SelectItem>
                         <SelectItem value="custom">Custom</SelectItem>
@@ -405,7 +452,8 @@ const Bibliotheca = () => {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="auto-detect">Auto-Detect</SelectItem>
                           <SelectItem value="book">Book</SelectItem>
                           <SelectItem value="article">Article</SelectItem>
                           <SelectItem value="video">Video</SelectItem>
@@ -421,7 +469,7 @@ const Bibliotheca = () => {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background z-50">
                           <SelectItem value="personal">Personal</SelectItem>
                           <SelectItem value="group">Group</SelectItem>
                         </SelectContent>
@@ -436,7 +484,7 @@ const Bibliotheca = () => {
                         <SelectTrigger>
                           <SelectValue placeholder="Choose a group" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background z-50">
                           {groups.map(group => (
                             <SelectItem key={group.id} value={group.id}>
                               {group.name}
