@@ -51,14 +51,14 @@ const Dashboard = () => {
   }
 
   const features = [
-    { icon: LineChart, title: 'Track Everything', color: 'bg-gradient-warm', onClick: () => setTrackingDialogOpen(true) },
-    { icon: ListChecks, title: 'Top 3 Tasks', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
-    { icon: Calendar, title: 'Study Schedules', color: 'bg-gradient-warm', onClick: () => navigate('/study-schedule') },
-    { icon: Share2, title: 'Share Resources', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
-    { icon: Users, title: 'Collaboration', color: 'bg-gradient-warm', onClick: () => toast.info('Feature coming soon!') },
-    { icon: Timer, title: 'Focus Timers', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
-    { icon: Heart, title: 'Mental Health', color: 'bg-gradient-warm', onClick: () => toast.info('Feature coming soon!') },
-    { icon: BarChart3, title: 'Analytics', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: LineChart, title: 'Track Everything', description: 'Monitor your study sessions and progress', color: 'bg-gradient-warm', onClick: () => setTrackingDialogOpen(true) },
+    { icon: ListChecks, title: 'Top 3 Tasks', description: 'Coming soon', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: Calendar, title: 'Study Schedules', description: 'AI-powered schedules with calendar sync', color: 'bg-gradient-warm', onClick: () => navigate('/study-schedule') },
+    { icon: Share2, title: 'Share Resources', description: 'Coming soon', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: Users, title: 'Collaboration', description: 'Coming soon', color: 'bg-gradient-warm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: Timer, title: 'Focus Timers', description: 'Coming soon', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: Heart, title: 'Mental Health', description: 'Coming soon', color: 'bg-gradient-warm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: BarChart3, title: 'Analytics', description: 'Coming soon', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
   ];
 
   return (
@@ -153,7 +153,7 @@ const Dashboard = () => {
                   {feature.title}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Coming soon
+                  {feature.description}
                 </p>
               </Card>
             ))}
