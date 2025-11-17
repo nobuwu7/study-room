@@ -14,6 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      mental_health_articles: {
+        Row: {
+          age_group: string
+          author: string | null
+          category: string
+          content: string
+          created_at: string
+          description: string
+          id: string
+          image_url: string | null
+          published_at: string
+          read_time_minutes: number | null
+          source_url: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          age_group: string
+          author?: string | null
+          category: string
+          content: string
+          created_at?: string
+          description: string
+          id?: string
+          image_url?: string | null
+          published_at?: string
+          read_time_minutes?: number | null
+          source_url?: string | null
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          age_group?: string
+          author?: string | null
+          category?: string
+          content?: string
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          published_at?: string
+          read_time_minutes?: number | null
+          source_url?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mental_health_bookmarks: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mental_health_bookmarks_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "mental_health_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

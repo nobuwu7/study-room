@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import StudySchedule from "./pages/StudySchedule";
 import TopTasks from "./pages/TopTasks";
 import FocusTimer from "./pages/FocusTimer";
+import MentalHealth from "./pages/MentalHealth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/study-schedule" element={<StudySchedule />} />
             <Route path="/top-tasks" element={<TopTasks />} />
             <Route path="/focus-timer" element={<FocusTimer />} />
+            <Route path="/mental-health" element={<MentalHealth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
