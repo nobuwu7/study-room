@@ -41,6 +41,48 @@ export type Database = {
         }
         Relationships: []
       }
+      study_sessions: {
+        Row: {
+          break_type: Database["public"]["Enums"]["break_type"]
+          created_at: string
+          duration_minutes: number | null
+          end_time: string | null
+          energy_level: Database["public"]["Enums"]["energy_level"]
+          id: string
+          notes: string | null
+          session_type: Database["public"]["Enums"]["session_type"]
+          start_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          break_type?: Database["public"]["Enums"]["break_type"]
+          created_at?: string
+          duration_minutes?: number | null
+          end_time?: string | null
+          energy_level?: Database["public"]["Enums"]["energy_level"]
+          id?: string
+          notes?: string | null
+          session_type?: Database["public"]["Enums"]["session_type"]
+          start_time: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          break_type?: Database["public"]["Enums"]["break_type"]
+          created_at?: string
+          duration_minutes?: number | null
+          end_time?: string | null
+          energy_level?: Database["public"]["Enums"]["energy_level"]
+          id?: string
+          notes?: string | null
+          session_type?: Database["public"]["Enums"]["session_type"]
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -49,7 +91,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      break_type: "none" | "light" | "heavy"
+      energy_level: "none" | "low" | "high"
+      session_type: "solo" | "with_friends"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -176,6 +220,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      break_type: ["none", "light", "heavy"],
+      energy_level: ["none", "low", "high"],
+      session_type: ["solo", "with_friends"],
+    },
   },
 } as const
