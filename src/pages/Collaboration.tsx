@@ -30,6 +30,7 @@ const Collaboration = () => {
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'member' | 'admin' | 'viewer'>('member');
   const [resourceTitle, setResourceTitle] = useState('');
   const [resourceContent, setResourceContent] = useState('');
   const [resourceType, setResourceType] = useState<'note' | 'link' | 'file' | 'task'>('note');
@@ -224,13 +225,15 @@ const Collaboration = () => {
         .insert({
           group_id: selectedGroup.id,
           invited_by: user?.id,
-          invited_email: inviteEmail
+          invited_email: inviteEmail,
+          role: inviteRole
         });
 
       if (error) throw error;
 
       toast.success('Invitation sent!');
       setInviteEmail('');
+      setInviteRole('member');
       setInviteMemberOpen(false);
     } catch (error: any) {
       if (error.code === '23505') {
@@ -251,13 +254,20 @@ const Collaboration = () => {
 
       if (inviteError) throw inviteError;
 
-      // Add user to group
+      // Get the invitation to check the role
+      const { data: inviteData } = await supabase
+        .from('group_invitations')
+        .select('role')
+        .eq('id', invitationId)
+        .single();
+
+      // Add user to group with the role from invitation
       const { error: memberError } = await supabase
         .from('group_members')
         .insert({
           group_id: groupId,
           user_id: user?.id,
-          role: 'member'
+          role: inviteData?.role || 'member'
         });
 
       if (memberError) throw memberError;
@@ -512,6 +522,19 @@ const Collaboration = () => {
                             onChange={(e) => setInviteEmail(e.target.value)}
                             placeholder="friend@example.com"
                           />
+                        </div>
+                        <div>
+                          <Label htmlFor="inviteRole">Access Level</Label>
+                          <Select value={inviteRole} onValueChange={(v: any) => setInviteRole(v)}>
+                            <SelectTrigger className="bg-background z-50">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50">
+                              <SelectItem value="viewer">Viewer - Can view resources</SelectItem>
+                              <SelectItem value="member">Editor - Can add and edit resources</SelectItem>
+                              <SelectItem value="admin">Admin - Full control</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <Button onClick={inviteMember} className="w-full">Send Invitation</Button>
                       </div>
