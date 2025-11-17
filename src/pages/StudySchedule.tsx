@@ -113,10 +113,10 @@ const StudySchedule = () => {
             </div>
             <div>
               <h1 className="text-4xl font-bold text-foreground">
-                Personalized Study Schedule
+                Study Schedule
               </h1>
               <p className="text-muted-foreground mt-2">
-                Get a custom study plan that adapts to your natural rhythms
+                AI-powered schedule based on your rhythms
               </p>
             </div>
           </div>
@@ -125,16 +125,16 @@ const StudySchedule = () => {
         {!schedule ? (
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle>Tell us about your routine</CardTitle>
+              <CardTitle>Your Routine</CardTitle>
               <CardDescription>
-                We'll create a biologically optimized schedule based on your habits
+                Tell us about your sleep and energy patterns
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="sleepTime">What time do you usually sleep?</Label>
+                    <Label htmlFor="sleepTime">Sleep time</Label>
                     <Input
                       id="sleepTime"
                       type="time"
@@ -145,7 +145,7 @@ const StudySchedule = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="wakeTime">What time do you wake up?</Label>
+                    <Label htmlFor="wakeTime">Wake time</Label>
                     <Input
                       id="wakeTime"
                       type="time"
@@ -158,28 +158,28 @@ const StudySchedule = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="energyPeaks">
-                    When do you feel most energetic during the day?
+                    When are you most energetic?
                   </Label>
                   <Textarea
                     id="energyPeaks"
-                    placeholder="e.g., I'm most alert in the morning around 9-11 AM, and have a second wind around 3-5 PM..."
+                    placeholder="e.g., Most alert 9-11 AM, second wind 3-5 PM"
                     value={formData.energyPeaks}
                     onChange={(e) => setFormData({ ...formData, energyPeaks: e.target.value })}
-                    rows={3}
+                    rows={2}
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="studyGoals">
-                    What are your study goals and subjects?
+                    Study goals and subjects
                   </Label>
                   <Textarea
                     id="studyGoals"
-                    placeholder="e.g., I need to study mathematics and biology for 4-5 hours per day, preparing for final exams..."
+                    placeholder="e.g., Math and biology, 4-5 hours daily for finals"
                     value={formData.studyGoals}
                     onChange={(e) => setFormData({ ...formData, studyGoals: e.target.value })}
-                    rows={3}
+                    rows={2}
                     required
                   />
                 </div>
@@ -212,10 +212,10 @@ const StudySchedule = () => {
                   <div>
                     <CardTitle className="flex items-center gap-2 text-2xl">
                       <Sparkles className="w-6 h-6 text-primary" />
-                      Your Personalized Schedule
+                      Your Schedule
                     </CardTitle>
                     <CardDescription className="mt-2">
-                      Optimized for your sleep pattern: {formData.wakeTime} - {formData.sleepTime}
+                      Wake {formData.wakeTime} • Sleep {formData.sleepTime}
                     </CardDescription>
                   </div>
                   <Badge variant="outline" className="bg-primary/10">
@@ -235,8 +235,8 @@ const StudySchedule = () => {
                               <Brain className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-muted-foreground">Peak Focus</p>
-                              <p className="text-lg font-semibold">Morning Hours</p>
+                              <p className="text-sm font-medium text-muted-foreground">Peak</p>
+                              <p className="text-lg font-semibold">Morning</p>
                             </div>
                           </div>
                         </CardContent>
@@ -248,7 +248,7 @@ const StudySchedule = () => {
                               <Coffee className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-muted-foreground">Strategic Breaks</p>
+                              <p className="text-sm font-medium text-muted-foreground">Breaks</p>
                               <p className="text-lg font-semibold">Every 90 min</p>
                             </div>
                           </div>
@@ -261,7 +261,7 @@ const StudySchedule = () => {
                               <Lightbulb className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-muted-foreground">Active Hours</p>
+                              <p className="text-sm font-medium text-muted-foreground">Study Time</p>
                               <p className="text-lg font-semibold">6-8 hours</p>
                             </div>
                           </div>
@@ -275,7 +275,7 @@ const StudySchedule = () => {
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
                         <Clock className="w-5 h-5 text-muted-foreground" />
-                        <h3 className="text-lg font-semibold">Daily Schedule Breakdown</h3>
+                        <h3 className="text-lg font-semibold">Daily Breakdown</h3>
                       </div>
                       
                       <div className="bg-muted/30 rounded-lg p-6 space-y-4">
@@ -341,26 +341,22 @@ const StudySchedule = () => {
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
                           <Lightbulb className="w-4 h-4 text-blue-600" />
-                          Pro Tips
+                          Tips
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <ul className="space-y-2 text-sm text-muted-foreground">
                           <li className="flex items-start gap-2">
                             <span className="text-blue-600 mt-1">•</span>
-                            <span>Stay consistent with your wake and sleep times to maintain your circadian rhythm</span>
+                            <span>Keep consistent wake/sleep times</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <span className="text-blue-600 mt-1">•</span>
-                            <span>Use your peak energy times for the most challenging subjects</span>
+                            <span>Study hard subjects during peak energy</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <span className="text-blue-600 mt-1">•</span>
-                            <span>Take regular breaks to prevent mental fatigue and maintain focus</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-blue-600 mt-1">•</span>
-                            <span>Track your sessions in the Dashboard to see what works best for you</span>
+                            <span>Take breaks to maintain focus</span>
                           </li>
                         </ul>
                       </CardContent>
@@ -377,24 +373,24 @@ const StudySchedule = () => {
                 className="flex-1"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
-                Generate New Schedule
+                New Schedule
               </Button>
               <Button
                 onClick={() => {
                   navigator.clipboard.writeText(schedule);
-                  toast.success('Schedule copied to clipboard!');
+                  toast.success("Copied to clipboard!");
                 }}
                 variant="outline"
                 className="flex-1"
               >
                 <Calendar className="mr-2 h-4 w-4" />
-                Copy Schedule
+                Copy
               </Button>
               <Button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate("/dashboard")}
                 className="flex-1 bg-gradient-warm"
               >
-                Back to Dashboard
+                Dashboard
               </Button>
             </div>
           </div>
