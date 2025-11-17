@@ -18,24 +18,14 @@ const CTA = () => {
           Join thousands of students who are studying smarter, not harder. Your cozy virtual study room awaits.
         </p>
         
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button 
-            size="lg" 
-            className="text-lg px-8 py-6 bg-gradient-warm hover:shadow-warm transition-all duration-300 hover:scale-105 group"
-            onClick={() => window.location.href = '/auth'}
-          >
-            Get Started Free
-            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Button>
-          <Button 
-            size="lg" 
-            variant="outline" 
-            className="text-lg px-8 py-6 border-2 hover:bg-muted/50 transition-all duration-300"
-            onClick={() => window.location.href = '/auth'}
-          >
-            Watch Demo
-          </Button>
-        </div>
+        <Button 
+          size="lg" 
+          className="text-lg px-8 py-6 bg-gradient-warm hover:shadow-warm transition-all duration-300 hover:scale-105 group"
+          onClick={() => window.location.href = '/auth'}
+        >
+          Get Started Free
+          <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        </Button>
         
         <p className="mt-8 text-sm text-muted-foreground">
           No credit card required • Free forever • Start in seconds
