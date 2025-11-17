@@ -21,10 +21,12 @@ const Collaboration = () => {
   const [resources, setResources] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [invitations, setInvitations] = useState<any[]>([]);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [inviteMemberOpen, setInviteMemberOpen] = useState(false);
   const [createResourceOpen, setCreateResourceOpen] = useState(false);
+  const [editingResource, setEditingResource] = useState<any>(null);
 
   // Form states
   const [groupName, setGroupName] = useState('');
@@ -52,6 +54,20 @@ const Collaboration = () => {
     if (selectedGroup) {
       fetchResources();
       fetchMembers();
+      
+      // Get current user's role in this group
+      const fetchUserRole = async () => {
+        const { data } = await supabase
+          .from('group_members')
+          .select('role')
+          .eq('group_id', selectedGroup.id)
+          .eq('user_id', user?.id)
+          .single();
+        
+        setCurrentUserRole(data?.role || null);
+      };
+      
+      fetchUserRole();
       
       // Set up real-time subscriptions
       const resourcesChannel = supabase
@@ -82,6 +98,7 @@ const Collaboration = () => {
           },
           () => {
             fetchMembers();
+            fetchUserRole();
           }
         )
         .subscribe();
@@ -91,7 +108,7 @@ const Collaboration = () => {
         supabase.removeChannel(membersChannel);
       };
     }
-  }, [selectedGroup]);
+  }, [selectedGroup, user]);
 
   const fetchGroups = async () => {
     try {
@@ -282,32 +299,57 @@ const Collaboration = () => {
 
   const createResource = async () => {
     if (!resourceTitle.trim() || !resourceContent.trim() || !selectedGroup) {
-      toast.error('All fields are required');
+      toast.error('Title and content are required');
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from('shared_resources')
-        .insert({
-          group_id: selectedGroup.id,
-          title: resourceTitle,
-          content: resourceContent,
-          resource_type: resourceType,
-          created_by: user?.id
-        });
+      if (editingResource) {
+        // Update existing resource
+        const { error } = await supabase
+          .from('shared_resources')
+          .update({
+            title: resourceTitle,
+            content: resourceContent,
+            resource_type: resourceType,
+          })
+          .eq('id', editingResource.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        toast.success('Resource updated!');
+      } else {
+        // Create new resource
+        const { error } = await supabase
+          .from('shared_resources')
+          .insert({
+            group_id: selectedGroup.id,
+            title: resourceTitle,
+            content: resourceContent,
+            resource_type: resourceType,
+            created_by: user?.id
+          });
 
-      toast.success('Resource shared!');
+        if (error) throw error;
+        toast.success('Resource shared!');
+      }
+
       setResourceTitle('');
       setResourceContent('');
       setResourceType('note');
+      setEditingResource(null);
       setCreateResourceOpen(false);
       fetchResources();
     } catch (error: any) {
-      toast.error('Failed to share resource');
+      toast.error(editingResource ? 'Failed to update resource' : 'Failed to share resource');
     }
+  };
+
+  const editResource = (resource: any) => {
+    setEditingResource(resource);
+    setResourceTitle(resource.title);
+    setResourceContent(resource.content);
+    setResourceType(resource.resource_type);
+    setCreateResourceOpen(true);
   };
 
   const deleteResource = async (resourceId: string) => {
@@ -340,6 +382,23 @@ const Collaboration = () => {
   }
 
   if (!user) return null;
+
+  const canEditResource = (resource: any) => {
+    if (currentUserRole === 'viewer') return false;
+    if (currentUserRole === 'admin' || currentUserRole === 'owner') return true;
+    return resource.created_by === user?.id;
+  };
+
+  const canShareResource = currentUserRole !== 'viewer';
+
+  const getRoleDisplay = (role: string) => {
+    switch (role) {
+      case 'owner': return '👑 Owner';
+      case 'admin': return '⭐ Admin';
+      case 'viewer': return '👁️ Viewer';
+      default: return '✏️ Editor';
+    }
+  };
 
   const getResourceIcon = (type: string) => {
     switch (type) {
@@ -544,10 +603,8 @@ const Collaboration = () => {
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {members.map((member) => (
-                      <div key={member.id} className="px-3 py-1 bg-muted rounded-full text-sm">
-                        {member.role === 'owner' && '👑 '}
-                        {member.role === 'admin' && '⭐ '}
-                        Member
+                      <div key={member.id} className="px-3 py-1 bg-muted rounded-full text-sm flex items-center gap-1">
+                        <span>{getRoleDisplay(member.role)}</span>
                       </div>
                     ))}
                   </div>
@@ -561,17 +618,27 @@ const Collaboration = () => {
                     <CardTitle>Quick Share</CardTitle>
                     <CardDescription>Updates in real-time</CardDescription>
                   </div>
-                  <Dialog open={createResourceOpen} onOpenChange={setCreateResourceOpen}>
+                  <Dialog open={createResourceOpen} onOpenChange={(open) => {
+                    setCreateResourceOpen(open);
+                    if (!open) {
+                      setEditingResource(null);
+                      setResourceTitle('');
+                      setResourceContent('');
+                      setResourceType('note');
+                    }
+                  }}>
                     <DialogTrigger asChild>
-                      <Button size="sm" className="gap-2">
+                      <Button size="sm" className="gap-2" disabled={!canShareResource}>
                         <Plus className="w-4 h-4" />
                         Share
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Share Resource</DialogTitle>
-                        <DialogDescription>Add a resource for the group</DialogDescription>
+                        <DialogTitle>{editingResource ? 'Edit Resource' : 'Share Resource'}</DialogTitle>
+                        <DialogDescription>
+                          {editingResource ? 'Update the resource details' : 'Add a resource for the group'}
+                        </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
                         <div>
@@ -606,7 +673,9 @@ const Collaboration = () => {
                             rows={4}
                           />
                         </div>
-                        <Button onClick={createResource} className="w-full">Share Resource</Button>
+                        <Button onClick={createResource} className="w-full">
+                          {editingResource ? 'Update Resource' : 'Share Resource'}
+                        </Button>
                       </div>
                     </DialogContent>
                   </Dialog>
@@ -617,35 +686,44 @@ const Collaboration = () => {
                       No resources yet. Share something to get started!
                     </p>
                   ) : (
-                    <div className="space-y-3">
-                      {resources.map((resource) => (
-                        <div key={resource.id} className="p-4 bg-muted/50 rounded-lg">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2">
-                                {getResourceIcon(resource.resource_type)}
-                                <h4 className="font-medium">{resource.title}</h4>
+                      <div className="space-y-3">
+                        {resources.map((resource) => (
+                          <div key={resource.id} className="p-4 bg-muted/50 rounded-lg">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  {getResourceIcon(resource.resource_type)}
+                                  <h4 className="font-medium">{resource.title}</h4>
+                                </div>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
+                                  {resource.content}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  {format(new Date(resource.created_at), 'MMM dd, yyyy HH:mm')}
+                                </p>
                               </div>
-                              <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
-                                {resource.content}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-2">
-                                {format(new Date(resource.created_at), 'MMM dd, yyyy HH:mm')}
-                              </p>
+                              {canEditResource(resource) && (
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => editResource(resource)}
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => deleteResource(resource.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
-                            {resource.created_by === user?.id && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => deleteResource(resource.id)}
-                              >
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                            )}
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
                   )}
                 </CardContent>
               </Card>
