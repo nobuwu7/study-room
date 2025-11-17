@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { BookOpen, ArrowLeft, Calendar, Loader2, Sparkles, Clock, Coffee, Brain, Lightbulb, Moon, Sun, Sunrise, Save, FolderOpen } from 'lucide-react';
+import { BookOpen, ArrowLeft, Calendar, Loader2, Sparkles, Clock, Coffee, Brain, Lightbulb, Moon, Sun, Sunrise, Save, FolderOpen, Link as LinkIcon, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -111,6 +111,37 @@ const StudySchedule = () => {
     setSchedule(scheduleData.generated_schedule);
     setCurrentScheduleId(scheduleData.id);
     toast.success('Schedule loaded!');
+  };
+
+  const downloadCalendar = async () => {
+    if (!currentScheduleId || !user) {
+      toast.error('Please save your schedule first');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-calendar', {
+        body: { scheduleId: currentScheduleId },
+      });
+
+      if (error) throw error;
+
+      // Create blob and download
+      const blob = new Blob([data], { type: 'text/calendar' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'study-schedule.ics';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('Calendar file downloaded! Add it to your calendar app.');
+    } catch (error) {
+      console.error('Error downloading calendar:', error);
+      toast.error('Failed to download calendar');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -541,44 +572,75 @@ const StudySchedule = () => {
               </CardContent>
             </Card>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button
-                onClick={saveSchedule}
-                variant="default"
-                className="flex-1 bg-gradient-warm"
-                disabled={saving}
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    {currentScheduleId ? 'Update' : 'Save'} Schedule
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={handleReset}
-                variant="outline"
-                className="flex-1"
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                New Schedule
-              </Button>
-              <Button
-                onClick={() => {
-                  navigator.clipboard.writeText(schedule);
-                  toast.success("Copied to clipboard!");
-                }}
-                variant="outline"
-                className="flex-1"
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                Copy
-              </Button>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  onClick={saveSchedule}
+                  variant="default"
+                  className="flex-1 bg-gradient-warm"
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      {currentScheduleId ? 'Update' : 'Save'} Schedule
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleReset}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  New Schedule
+                </Button>
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(schedule);
+                    toast.success("Copied to clipboard!");
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <LinkIcon className="mr-2 h-4 w-4" />
+                  Copy
+                </Button>
+              </div>
+
+              {/* Calendar subscription section */}
+              <Card className="border-border/50 bg-accent/5">
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-sm mb-1 flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Add to Your Calendar
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        {currentScheduleId 
+                          ? 'Download and import to Google Calendar, Apple Calendar, or Outlook'
+                          : 'Save your schedule first to enable calendar export'}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={downloadCalendar}
+                      variant="outline"
+                      size="sm"
+                      disabled={!currentScheduleId}
+                      className="whitespace-nowrap"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download .ics
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}
