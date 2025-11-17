@@ -57,33 +57,50 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 25 20% 12%;
-    --foreground: 35 15% 92%;
+    /* Deep midnight background with subtle blue tint */
+    --background: 220 25% 6%;
+    --foreground: 210 40% 98%;
 
-    --card: 25 20% 15%;
-    --card-foreground: 35 15% 92%;
+    /* Elevated surfaces with more depth */
+    --card: 220 20% 10%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 25 20% 15%;
-    --popover-foreground: 35 15% 92%;
+    --popover: 220 22% 12%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 12 88% 65%;
+    /* Vibrant coral primary that pops against dark */
+    --primary: 12 95% 70%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 175 35% 45%;
-    --secondary-foreground: 35 15% 92%;
+    /* Electric teal secondary */
+    --secondary: 180 60% 50%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 25 15% 20%;
-    --muted-foreground: 35 10% 60%;
+    /* Deep muted with blue undertones */
+    --muted: 220 18% 16%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 45 85% 60%;
-    --accent-foreground: 25 15% 12%;
+    /* Bright golden accent */
+    --accent: 45 100% 65%;
+    --accent-foreground: 220 25% 6%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 35 15% 92%;
+    /* Vibrant destructive */
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 25 15% 22%;
-    --input: 25 15% 22%;
-    --ring: 12 88% 65%;
+    /* Subtle borders with blue tint */
+    --border: 220 20% 18%;
+    --input: 220 20% 18%;
+    --ring: 12 95% 70%;
+
+    /* Dynamic gradients for dark mode */
+    --gradient-warm: linear-gradient(135deg, hsl(12 95% 70%) 0%, hsl(25 90% 65%) 100%);
+    --gradient-calm: linear-gradient(135deg, hsl(180 60% 50%) 0%, hsl(190 65% 55%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(220 25% 6%) 0%, hsl(230 30% 10%) 100%);
+    
+    /* Enhanced shadows for depth */
+    --shadow-soft: 0 4px 24px -4px hsla(220, 50%, 4%, 0.5);
+    --shadow-warm: 0 10px 40px -8px hsla(12, 95%, 70%, 0.3);
   }
 }
 
@@ -94,5 +111,27 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Enhanced dark mode effects */
+  .dark {
+    /* Subtle glow effects */
+    .bg-gradient-warm {
+      box-shadow: 0 0 60px -15px hsla(12, 95%, 70%, 0.4);
+    }
+    
+    .bg-gradient-calm {
+      box-shadow: 0 0 60px -15px hsla(180, 60%, 50%, 0.3);
+    }
+
+    /* Card elevation in dark mode */
+    .border-border\/50 {
+      box-shadow: 0 2px 8px -2px hsla(220, 50%, 4%, 0.4);
+    }
+
+    /* Enhanced hover states */
+    button:hover, a:hover {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
   }
 }
