@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/contexts/ProfileContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -223,6 +224,11 @@ const Bibliotheca = () => {
   };
 
   const createItem = async () => {
+    if (!activeProfile) {
+      toast.error('No active profile selected');
+      return;
+    }
+
     if (!itemTitle.trim() || !itemContent.trim()) {
       toast.error('Title and content are required');
       return;
@@ -240,7 +246,8 @@ const Bibliotheca = () => {
       const { data: itemData, error: itemError } = await supabase
         .from('library_items')
         .insert({
-          user_id: user?.id,
+          user_id: activeProfile.user_id,
+          profile_id: activeProfile.id,
           title: itemTitle,
           description: itemDescription,
           content: itemContent,

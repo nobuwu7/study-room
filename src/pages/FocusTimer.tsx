@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/contexts/ProfileContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ interface TimerSettings {
 
 const FocusTimer = () => {
   const { user } = useAuth();
+  const { activeProfile } = useProfile();
   const navigate = useNavigate();
   const [mode, setMode] = useState<TimerMode>('work');
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
@@ -69,10 +71,11 @@ const FocusTimer = () => {
       setSessionsCompleted(newSessionsCompleted);
       
       // Save completed session to database
-      if (user) {
+      if (activeProfile) {
         try {
           await supabase.from('study_sessions').insert({
-            user_id: user.id,
+            user_id: activeProfile.user_id,
+            profile_id: activeProfile.id,
             start_time: new Date(Date.now() - settings.workDuration * 60 * 1000).toISOString(),
             end_time: new Date().toISOString(),
             duration_minutes: settings.workDuration,
