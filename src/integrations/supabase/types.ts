@@ -485,6 +485,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_email: { Args: { _user_id: string }; Returns: string }
       has_group_role: {
         Args: { _group_id: string; _role: string; _user_id: string }
         Returns: boolean
