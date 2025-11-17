@@ -531,11 +531,11 @@ const Collaboration = () => {
                 </CardContent>
               </Card>
 
-              {/* Shared Resources */}
+              {/* Quick Share */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle>Shared Resources</CardTitle>
+                    <CardTitle>Quick Share</CardTitle>
                     <CardDescription>Updates in real-time</CardDescription>
                   </div>
                   <Dialog open={createResourceOpen} onOpenChange={setCreateResourceOpen}>
