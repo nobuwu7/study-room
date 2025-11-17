@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { BookOpen, ArrowLeft, Calendar, Loader2, Sparkles, Clock, Coffee, Brain, Lightbulb, Moon, Sun, Sunrise } from 'lucide-react';
+import { BookOpen, ArrowLeft, Calendar, Loader2, Sparkles, Clock, Coffee, Brain, Lightbulb, Moon, Sun, Sunrise, Save, FolderOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,13 +17,101 @@ const StudySchedule = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [schedule, setSchedule] = useState<string | null>(null);
+  const [currentScheduleId, setCurrentScheduleId] = useState<string | null>(null);
+  const [savedSchedules, setSavedSchedules] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     sleepTime: '23:00',
     wakeTime: '07:00',
     energyPeaks: '',
     studyGoals: '',
   });
+
+  // Load saved schedules on mount
+  useEffect(() => {
+    if (user) {
+      loadSavedSchedules();
+    }
+  }, [user]);
+
+  const loadSavedSchedules = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('study_schedules')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSavedSchedules(data || []);
+    } catch (error) {
+      console.error('Error loading schedules:', error);
+    }
+  };
+
+  const saveSchedule = async () => {
+    if (!user || !schedule) return;
+
+    setSaving(true);
+    try {
+      if (currentScheduleId) {
+        // Update existing schedule
+        const { error } = await supabase
+          .from('study_schedules')
+          .update({
+            sleep_time: formData.sleepTime,
+            wake_time: formData.wakeTime,
+            energy_peaks: formData.energyPeaks,
+            study_goals: formData.studyGoals,
+            generated_schedule: schedule,
+          })
+          .eq('id', currentScheduleId);
+
+        if (error) throw error;
+        toast.success('Schedule updated!');
+      } else {
+        // Create new schedule
+        const { data, error } = await supabase
+          .from('study_schedules')
+          .insert({
+            user_id: user.id,
+            sleep_time: formData.sleepTime,
+            wake_time: formData.wakeTime,
+            energy_peaks: formData.energyPeaks,
+            study_goals: formData.studyGoals,
+            generated_schedule: schedule,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        setCurrentScheduleId(data.id);
+        toast.success('Schedule saved!');
+      }
+
+      await loadSavedSchedules();
+    } catch (error) {
+      console.error('Error saving schedule:', error);
+      toast.error('Failed to save schedule');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const loadSchedule = (scheduleData: any) => {
+    setFormData({
+      sleepTime: scheduleData.sleep_time,
+      wakeTime: scheduleData.wake_time,
+      energyPeaks: scheduleData.energy_peaks,
+      studyGoals: scheduleData.study_goals,
+    });
+    setSchedule(scheduleData.generated_schedule);
+    setCurrentScheduleId(scheduleData.id);
+    toast.success('Schedule loaded!');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +146,7 @@ const StudySchedule = () => {
 
       if (data?.schedule) {
         setSchedule(data.schedule);
+        setCurrentScheduleId(null); // Reset ID for new schedule
         toast.success('Your personalized schedule is ready!');
       } else {
         throw new Error('No schedule received');
@@ -72,6 +161,7 @@ const StudySchedule = () => {
 
   const handleReset = () => {
     setSchedule(null);
+    setCurrentScheduleId(null);
     setFormData({
       sleepTime: '23:00',
       wakeTime: '07:00',
@@ -123,13 +213,56 @@ const StudySchedule = () => {
         </div>
 
         {!schedule ? (
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle>Your Routine</CardTitle>
-              <CardDescription>
-                Tell us about your sleep and energy patterns
-              </CardDescription>
-            </CardHeader>
+          <div className="space-y-6">
+            {/* Saved Schedules */}
+            {savedSchedules.length > 0 && (
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FolderOpen className="w-5 h-5" />
+                    Saved Schedules
+                  </CardTitle>
+                  <CardDescription>
+                    Load a previously saved schedule
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[200px]">
+                    <div className="space-y-2">
+                      {savedSchedules.map((sched) => (
+                        <Card
+                          key={sched.id}
+                          className="p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                          onClick={() => loadSchedule(sched)}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm mb-1">
+                                {sched.wake_time} - {sched.sleep_time}
+                              </p>
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {sched.study_goals}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {new Date(sched.created_at).toLocaleDateString()}
+                            </Badge>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle>Your Routine</CardTitle>
+                <CardDescription>
+                  Tell us about your sleep and energy patterns
+                </CardDescription>
+              </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -204,6 +337,7 @@ const StudySchedule = () => {
               </form>
             </CardContent>
           </Card>
+          </div>
         ) : (
           <div className="space-y-6 animate-fade-in">
             <Card className="border-border/50 bg-gradient-to-br from-background to-accent/5">
@@ -409,6 +543,24 @@ const StudySchedule = () => {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
+                onClick={saveSchedule}
+                variant="default"
+                className="flex-1 bg-gradient-warm"
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    {currentScheduleId ? 'Update' : 'Save'} Schedule
+                  </>
+                )}
+              </Button>
+              <Button
                 onClick={handleReset}
                 variant="outline"
                 className="flex-1"
@@ -426,12 +578,6 @@ const StudySchedule = () => {
               >
                 <Calendar className="mr-2 h-4 w-4" />
                 Copy
-              </Button>
-              <Button
-                onClick={() => navigate("/dashboard")}
-                className="flex-1 bg-gradient-warm"
-              >
-                Dashboard
               </Button>
             </div>
           </div>
