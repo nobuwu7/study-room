@@ -88,19 +88,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get auth token
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing authorization header");
-    }
-
-    const { scheduleId } = await req.json() as CalendarRequest;
+    // Get schedule ID from URL params
+    const url = new URL(req.url);
+    const scheduleId = url.searchParams.get("scheduleId");
 
     if (!scheduleId) {
       throw new Error("Schedule ID is required");
     }
 
-    // Fetch the schedule
+    // Fetch the schedule (public access - no auth required)
     const { data: schedule, error } = await supabase
       .from("study_schedules")
       .select("*")
@@ -110,12 +106,6 @@ const handler = async (req: Request): Promise<Response> => {
     if (error) throw error;
     if (!schedule) throw new Error("Schedule not found");
 
-    // Verify ownership
-    const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    if (!user || user.id !== schedule.user_id) {
-      throw new Error("Unauthorized");
-    }
-
     // Generate ICS file
     const icsContent = generateICS(schedule);
 
@@ -123,7 +113,7 @@ const handler = async (req: Request): Promise<Response> => {
       status: 200,
       headers: {
         "Content-Type": "text/calendar; charset=utf-8",
-        "Content-Disposition": `attachment; filename="study-schedule.ics"`,
+        "Content-Disposition": 'inline; filename="study-schedule.ics"',
         ...corsHeaders,
       },
     });

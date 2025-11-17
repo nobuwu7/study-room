@@ -1,1 +1,4 @@
 project_id = "ztlaaftdnnerohilxoak"
+
+[functions.generate-calendar]
+verify_jwt = false
