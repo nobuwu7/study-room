@@ -6,7 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { BookOpen, ArrowLeft, Calendar, Loader2, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { BookOpen, ArrowLeft, Calendar, Loader2, Sparkles, Clock, Coffee, Brain, Lightbulb, Moon, Sun, Sunrise } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -203,32 +206,189 @@ const StudySchedule = () => {
           </Card>
         ) : (
           <div className="space-y-6 animate-fade-in">
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  Your Personalized Schedule
-                </CardTitle>
-                <CardDescription>
-                  Based on your sleep habits and energy patterns
-                </CardDescription>
+            <Card className="border-border/50 bg-gradient-to-br from-background to-accent/5">
+              <CardHeader className="pb-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-2xl">
+                      <Sparkles className="w-6 h-6 text-primary" />
+                      Your Personalized Schedule
+                    </CardTitle>
+                    <CardDescription className="mt-2">
+                      Optimized for your sleep pattern: {formData.wakeTime} - {formData.sleepTime}
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" className="bg-primary/10">
+                    AI Generated
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <div className="whitespace-pre-wrap text-foreground">
-                    {schedule}
+                <ScrollArea className="h-[600px] pr-4">
+                  <div className="space-y-6">
+                    {/* Key Highlights Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <Card className="bg-gradient-warm/10 border-orange-200/50">
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-gradient-warm rounded-lg">
+                              <Brain className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Peak Focus</p>
+                              <p className="text-lg font-semibold">Morning Hours</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-gradient-calm/10 border-blue-200/50">
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-gradient-calm rounded-lg">
+                              <Coffee className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Strategic Breaks</p>
+                              <p className="text-lg font-semibold">Every 90 min</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-purple-100/50 border-purple-200/50">
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-500 rounded-lg">
+                              <Lightbulb className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Active Hours</p>
+                              <p className="text-lg font-semibold">6-8 hours</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <Separator />
+
+                    {/* Schedule Content - Formatted with better structure */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Clock className="w-5 h-5 text-muted-foreground" />
+                        <h3 className="text-lg font-semibold">Daily Schedule Breakdown</h3>
+                      </div>
+                      
+                      <div className="bg-muted/30 rounded-lg p-6 space-y-4">
+                        {schedule.split('\n').map((line, index) => {
+                          // Skip empty lines
+                          if (!line.trim()) return null;
+                          
+                          // Check if line contains time patterns (HH:MM or similar)
+                          const timePattern = /(\d{1,2}:\d{2}|\d{1,2}\s*[AaPp][Mm])/;
+                          const isTimeBlock = timePattern.test(line);
+                          
+                          // Check for section headers (lines with colons or all caps)
+                          const isSectionHeader = (line.includes(':') && !isTimeBlock) || 
+                                                 (line === line.toUpperCase() && line.length > 5);
+                          
+                          // Identify activity types for icons
+                          const getIcon = () => {
+                            const lowerLine = line.toLowerCase();
+                            if (lowerLine.includes('wake') || lowerLine.includes('morning')) return <Sunrise className="w-4 h-4" />;
+                            if (lowerLine.includes('study') || lowerLine.includes('focus')) return <Brain className="w-4 h-4" />;
+                            if (lowerLine.includes('break') || lowerLine.includes('rest')) return <Coffee className="w-4 h-4" />;
+                            if (lowerLine.includes('sleep') || lowerLine.includes('night')) return <Moon className="w-4 h-4" />;
+                            if (lowerLine.includes('energy') || lowerLine.includes('peak')) return <Sun className="w-4 h-4" />;
+                            return <Clock className="w-4 h-4" />;
+                          };
+                          
+                          if (isSectionHeader) {
+                            return (
+                              <div key={index} className="pt-4 first:pt-0">
+                                <h4 className="text-base font-semibold text-primary flex items-center gap-2">
+                                  <Lightbulb className="w-4 h-4" />
+                                  {line.replace(':', '')}
+                                </h4>
+                              </div>
+                            );
+                          }
+                          
+                          if (isTimeBlock) {
+                            return (
+                              <div 
+                                key={index} 
+                                className="flex items-start gap-3 p-3 bg-background rounded-lg border border-border/50 hover:border-primary/50 transition-colors"
+                              >
+                                <div className="mt-1 text-primary">
+                                  {getIcon()}
+                                </div>
+                                <p className="flex-1 text-sm leading-relaxed">{line}</p>
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <p key={index} className="text-sm text-muted-foreground leading-relaxed pl-7">
+                              {line}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Tips Section */}
+                    <Card className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/50">
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4 text-blue-600" />
+                          Pro Tips
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600 mt-1">•</span>
+                            <span>Stay consistent with your wake and sleep times to maintain your circadian rhythm</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600 mt-1">•</span>
+                            <span>Use your peak energy times for the most challenging subjects</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600 mt-1">•</span>
+                            <span>Take regular breaks to prevent mental fatigue and maintain focus</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600 mt-1">•</span>
+                            <span>Track your sessions in the Dashboard to see what works best for you</span>
+                          </li>
+                        </ul>
+                      </CardContent>
+                    </Card>
                   </div>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={handleReset}
                 variant="outline"
                 className="flex-1"
               >
+                <Sparkles className="mr-2 h-4 w-4" />
                 Generate New Schedule
+              </Button>
+              <Button
+                onClick={() => {
+                  navigator.clipboard.writeText(schedule);
+                  toast.success('Schedule copied to clipboard!');
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                Copy Schedule
               </Button>
               <Button
                 onClick={() => navigate('/dashboard')}
