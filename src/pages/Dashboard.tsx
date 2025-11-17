@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -16,10 +16,12 @@ import {
   Share2 
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { TrackingDialog } from '@/components/TrackingDialog';
 
 const Dashboard = () => {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
+  const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -46,14 +48,14 @@ const Dashboard = () => {
   }
 
   const features = [
-    { icon: LineChart, title: 'Track Everything', color: 'bg-gradient-warm' },
-    { icon: ListChecks, title: 'Top 3 Tasks', color: 'bg-gradient-calm' },
-    { icon: Calendar, title: 'Study Schedules', color: 'bg-gradient-warm' },
-    { icon: Share2, title: 'Share Resources', color: 'bg-gradient-calm' },
-    { icon: Users, title: 'Collaboration', color: 'bg-gradient-warm' },
-    { icon: Timer, title: 'Focus Timers', color: 'bg-gradient-calm' },
-    { icon: Heart, title: 'Mental Health', color: 'bg-gradient-warm' },
-    { icon: BarChart3, title: 'Analytics', color: 'bg-gradient-calm' },
+    { icon: LineChart, title: 'Track Everything', color: 'bg-gradient-warm', onClick: () => setTrackingDialogOpen(true) },
+    { icon: ListChecks, title: 'Top 3 Tasks', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: Calendar, title: 'Study Schedules', color: 'bg-gradient-warm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: Share2, title: 'Share Resources', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: Users, title: 'Collaboration', color: 'bg-gradient-warm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: Timer, title: 'Focus Timers', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: Heart, title: 'Mental Health', color: 'bg-gradient-warm', onClick: () => toast.info('Feature coming soon!') },
+    { icon: BarChart3, title: 'Analytics', color: 'bg-gradient-calm', onClick: () => toast.info('Feature coming soon!') },
   ];
 
   return (
@@ -102,6 +104,7 @@ const Dashboard = () => {
               key={index}
               className="p-6 hover:shadow-warm transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
               style={{ animationDelay: `${index * 0.1}s` }}
+              onClick={feature.onClick}
             >
               <div className={`inline-flex p-3 rounded-xl ${feature.color} mb-4 group-hover:scale-110 transition-transform`}>
                 <feature.icon className="w-6 h-6 text-white" />
@@ -110,11 +113,13 @@ const Dashboard = () => {
                 {feature.title}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Coming soon
+                {feature.title === 'Track Everything' ? 'Click to log a session' : 'Coming soon'}
               </p>
             </Card>
           ))}
         </div>
+
+        <TrackingDialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen} />
 
         <Card className="mt-12 p-8 bg-gradient-hero border-border/50">
           <div className="text-center max-w-2xl mx-auto">
