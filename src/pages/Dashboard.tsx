@@ -100,24 +100,33 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column: Track Everything + Activity History */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card 
-              className="p-6 hover:shadow-warm transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-              onClick={() => setTrackingDialogOpen(true)}
-            >
-              <div className="inline-flex p-3 rounded-xl bg-gradient-warm mb-4 group-hover:scale-110 transition-transform">
-                <LineChart className="w-6 h-6 text-white" />
+          {/* Left column: Track Everything with embedded Activity History */}
+          <div className="lg:col-span-2">
+            <Card className="p-6 border-border/50 bg-card">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex p-3 rounded-xl bg-gradient-warm">
+                    <LineChart className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      Track Everything
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Monitor your study sessions and progress
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => setTrackingDialogOpen(true)}
+                  className="bg-gradient-warm hover:shadow-warm transition-all"
+                >
+                  Log Session
+                </Button>
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                Track Everything
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Click to log a session
-              </p>
-            </Card>
 
-            <ActivityHistory />
+              <ActivityHistory />
+            </Card>
           </div>
 
           {/* Right column: Other features */}

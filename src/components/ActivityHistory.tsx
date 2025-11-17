@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar, Clock, Users, User, Battery, Coffee, Loader2 } from 'lucide-react';
@@ -79,39 +79,30 @@ export const ActivityHistory = () => {
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Activity History</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-8">
+      <div>
+        <h4 className="text-md font-semibold mb-4">Activity History</h4>
+        <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (sessions.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Activity History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-center text-muted-foreground py-8">
-            No study sessions logged yet. Start tracking to see your history!
-          </p>
-        </CardContent>
-      </Card>
+      <div>
+        <h4 className="text-md font-semibold mb-4">Activity History</h4>
+        <p className="text-center text-muted-foreground py-8">
+          No study sessions logged yet. Start tracking to see your history!
+        </p>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Activity History</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[500px] pr-4">
+    <div>
+      <h4 className="text-md font-semibold mb-4">Activity History</h4>
+      <ScrollArea className="h-[500px] pr-4">
           <div className="space-y-4">
             {sessions.map((session) => (
               <Card key={session.id} className="p-4 border-border/50">
@@ -187,7 +178,6 @@ export const ActivityHistory = () => {
             ))}
           </div>
         </ScrollArea>
-      </CardContent>
-    </Card>
+    </div>
   );
 };
