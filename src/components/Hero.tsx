@@ -1,11 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { BookOpen } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Hero = () => {
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gradient-hero px-6">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,150,100,0.08),transparent_50%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(100,200,200,0.08),transparent_50%)]" />
+      
+      <div className="absolute top-6 right-6 z-20">
+        <ThemeToggle />
+      </div>
       
       <div className="relative z-10 max-w-5xl mx-auto text-center animate-fade-in">
         <div className="inline-flex items-center justify-center p-2 mb-6 bg-primary/10 rounded-full animate-float">
