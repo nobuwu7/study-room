@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { BookOpen, ArrowLeft, Calendar, Loader2, Sparkles, Clock, Coffee, Brain, Lightbulb, Moon, Sun, Sunrise, Save, FolderOpen, Link as LinkIcon, Download } from 'lucide-react';
+import { BookOpen, ArrowLeft, Calendar, Loader2, Sparkles, Clock, Coffee, Brain, Lightbulb, Moon, Sun, Sunrise, Save, FolderOpen, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -119,28 +119,18 @@ const StudySchedule = () => {
       return;
     }
 
+    // Generate subscription URL
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const subscriptionUrl = `${supabaseUrl}/functions/v1/generate-calendar?scheduleId=${currentScheduleId}`;
+    const webcalUrl = subscriptionUrl.replace('https://', 'webcal://');
+
+    // Copy to clipboard
     try {
-      const { data, error } = await supabase.functions.invoke('generate-calendar', {
-        body: { scheduleId: currentScheduleId },
-      });
-
-      if (error) throw error;
-
-      // Create blob and download
-      const blob = new Blob([data], { type: 'text/calendar' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'study-schedule.ics';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success('Calendar file downloaded! Add it to your calendar app.');
+      await navigator.clipboard.writeText(subscriptionUrl);
+      toast.success('Calendar link copied! Paste it in your calendar app to subscribe.');
     } catch (error) {
-      console.error('Error downloading calendar:', error);
-      toast.error('Failed to download calendar');
+      console.error('Error copying calendar link:', error);
+      toast.error('Failed to copy calendar link');
     }
   };
 
@@ -620,12 +610,12 @@ const StudySchedule = () => {
                     <div className="flex-1">
                       <h4 className="font-semibold text-sm mb-1 flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        Add to Your Calendar
+                        Subscribe to Your Calendar
                       </h4>
                       <p className="text-xs text-muted-foreground">
                         {currentScheduleId 
-                          ? 'Download and import to Google Calendar, Apple Calendar, or Outlook'
-                          : 'Save your schedule first to enable calendar export'}
+                          ? 'Copy the link and add it to Google Calendar, Apple Calendar, or Outlook'
+                          : 'Save your schedule first to enable calendar subscription'}
                       </p>
                     </div>
                     <Button
@@ -635,8 +625,8 @@ const StudySchedule = () => {
                       disabled={!currentScheduleId}
                       className="whitespace-nowrap"
                     >
-                      <Download className="mr-2 h-4 w-4" />
-                      Download .ics
+                      <LinkIcon className="mr-2 h-4 w-4" />
+                      Copy Link
                     </Button>
                   </div>
                 </CardContent>
